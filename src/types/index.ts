@@ -1,5 +1,6 @@
-import { Middleware as KoaMiddleware, BaseContext} from 'koa';
+import { Middleware as KoaMiddleware, Context} from 'koa';
 import JWT from './../lib/jwt';
+import {Pagination} from "../common/pagination";
 
 /**
  * @remarks
@@ -27,6 +28,13 @@ type JwtFunctionResponse = { middleware: KoaMiddleware, authenticate: KoaMiddlew
 
 type UserStateType       = { id: string };
 
+type MessageError = {
+    message: string,
+    path: [string],
+    type: string, context: {  limit: number, value: any,  key: string, label: string
+  }
+}
+
 /**
  * @remarks
  * Extends ctx.state.user type to the base context
@@ -41,28 +49,31 @@ type ConfigStateType     = {
 */
 enum Responses {
   NOT_FOUND            = 'Not Found',
-  CANT_CREATE_USER     = 'Unable to create user',
-  CANT_UPDATE_USER     = 'Unable to update user',
-  NO_ACCESS_USER       = 'You do not have access to this User',
-  INTERNAL_ERROR       = 'An internal server has error occured',
-  SOMETHING_WENT_WRONG = 'Something went very wrong',
-  INVALID_CREDS        = 'Invalid Credentials'
-};
+  CANT_CREATE_USER     = 'Impossible de créer l\'utilisateur',
+  CANT_UPDATE_USER     = 'Impossible de mettre à jour l\'utilisateur',
+  NO_ACCESS_USER       = 'Vous n\'avez pas accès à cet utilisateur',
+  INTERNAL_ERROR       = 'Une erreur inconnue est survenue',
+  SOMETHING_WENT_WRONG = 'Un problème est survenu',
+  INVALID_CREDS        = 'Les informations d\'identification sont invalides'
+}
 
 /**
  * @remarks
  * Extends the base context with KWT, Respond and State
 */
-interface ModifiedContext extends BaseContext {
-  jwt: JWT,
-  respond: (status: number, body: object|string) => Function
-  state: ConfigStateType
+interface ModifiedContext extends Context {
+  jwt?: JWT;
+  invalid?: any;
+  answer?: (status: number, body: object|string, pagination?: Pagination) => ModifiedContext;
+  state: ConfigStateType;
 }
+
 
 export {
   ConfigServerType,
   ConfigJwtType,
   Responses,
   JwtFunctionResponse,
-  ModifiedContext
+  ModifiedContext,
+  MessageError
 };

@@ -104,8 +104,8 @@ An endpoint that has input and output validation that returns the following info
 
 |                |Type                          
 |----------------|-------------------------------
-|first_name          |String           
-|last_name          | String
+|firstName          |String           
+|lastName          | String
 |email          |String
 |password          |String
 
@@ -114,8 +114,8 @@ An endpoint that has input and output validation that returns the following info
 |                |Type                          
 |----------------|-------------------------------
 |id | String          
-|first_name          |String           
-|last_name          | String
+|firstName          |String           
+|lastName          | String
 |email          |String
 
 
@@ -148,8 +148,8 @@ An endpoint that returns the user object., and has output validation. This endpo
 |                |Type                          
 |----------------|-------------------------------
 |id | String          
-|first_name          |String           
-|last_name          | String
+|firstName          |String           
+|lastName          | String
 |email          |String
 
 ##### /user/{user_id} - PUT
@@ -162,8 +162,8 @@ An endpoint that updates the input of a document and output validation that retu
 
 |                |Type                          
 |----------------|-------------------------------
-|first_name          |String           
-|last_name          | String
+|firstName          |String           
+|lastName          | String
 
 
 ###### Output - JSON
@@ -171,8 +171,8 @@ An endpoint that updates the input of a document and output validation that retu
 |                |Type                          
 |----------------|-------------------------------
 |id | String          
-|first_name          |String           
-|last_name          | String
+|firstName          |String           
+|lastName          | String
 |email          |String
 
 

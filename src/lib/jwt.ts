@@ -1,6 +1,7 @@
 import JWT from 'jsonwebtoken';
 
 import {ConfigJwtType} from './../types/';
+import {UserDocument, UserType} from "../model/user";
 
 
 /**
@@ -13,7 +14,7 @@ type VerifyFunction = (token:string|null) => Promise<object|string|null>;
  * @param user - Signs the object with the JWT Secret
  * @returns A promise with a base64 encoded string
 */
-type SignFunction   = (user: {id: string}) => Promise<string>;
+type SignFunction   = (user:UserType) => Promise<string>;
 
 class Jwt {
   protected secret:string;
@@ -35,9 +36,9 @@ class Jwt {
     });
   };
 
-  public sign:SignFunction = (user) => {
+  public sign:SignFunction = (user: UserType) => {
     return new Promise ((resolve, reject) => {
-      JWT.sign(user, this.secret, (err, response) => {
+      JWT.sign(user, this.secret, {expiresIn: "20 days"},(err, response) => {
         if (err) {
           return reject(err);
         } else {

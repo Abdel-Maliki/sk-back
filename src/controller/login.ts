@@ -10,8 +10,8 @@ import UserModel, {UserDocument, UserType} from './../model/user';
 type InputBodyType = {email: string, password: string};
 
 class Login {
-  public static create = async (ctx: ModifiedContext) => {
-    const { 
+  public static create = async (ctx: ModifiedContext): Promise<ModifiedContext> => {
+    const {
       email, password
     } = <InputBodyType>ctx.request.body;
 
@@ -21,14 +21,13 @@ class Login {
       const isMatched = await user.comparePassword(password).catch(err => null);
       if (isMatched === true) {
         const {id}         = <UserType>user.toNormalization();
-        const token:string = await ctx.jwt.sign({id: id});
-
-        return ctx.respond(200, { token, user_id: id });
+        const token:string = await ctx.jwt.sign(user.toNormalization());
+        return ctx.answer(200, { token, user: user.toNormalization() });
       } else {
-        return ctx.respond(401, Responses.INVALID_CREDS);
+        return ctx.answer(401, Responses.INVALID_CREDS);
       }
     } else {
-      return ctx.respond(401, Responses.INVALID_CREDS);
+      return ctx.answer(401, Responses.INVALID_CREDS);
     }
   };
 };

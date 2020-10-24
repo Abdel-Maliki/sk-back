@@ -1,14 +1,17 @@
 import BCRYPT from 'bcrypt';
 import MONGOOSE from 'mongoose';
+import {ProfileType} from "./profile";
 
 type comparePasswordFunction = (candidatePassword: string) => Promise<boolean>;
 type toNormalizationFunction = () => UserType;
 
 export type UserDocument = MONGOOSE.Document & {
   email: string,
-  first_name: string,
-  last_name: string,
+  firstName: string,
+  lastName: string,
   password: string,
+  userName: string,
+  profile: ProfileType,
   comparePassword: comparePasswordFunction,
   toNormalization: toNormalizationFunction
 };
@@ -16,20 +19,28 @@ export type UserDocument = MONGOOSE.Document & {
 export type UserType = {
   id: string | null,
   email: string | null,
-  first_name: string | null,
-  last_name: string | null
+  firstName: string | null,
+  lastName: string | null,
+  userName: string| null,
+  profile: ProfileType| null,
 };
 
 const userSchema = new MONGOOSE.Schema({
   email: { type: String, unique: true },
-  first_name: { type: String, default: '' },
-  last_name: { type: String, default: ''},
-  password: String
+  userName: { type: String, unique: true },
+  firstName: { type: String, default: '' },
+  lastName: { type: String, default: ''},
+  password: String,
+  profile: {
+    id: { type: String, default: '', required: true },
+    name: { type: String, default: '', required: true },
+    description: { type: String, default: '' }
+  }
 }, { timestamps: true });
 
 userSchema.pre('save', function save(next: Function) {
   const ctx = this;
-  
+
   if (!this.isModified('password')) { return next(); }
 
   BCRYPT.genSalt(10, (err, salt) => {
@@ -63,9 +74,11 @@ const toNormalization: toNormalizationFunction = function () {
 
   let UserObject: UserType = {
     id: _userObject._id.toString(),
-    first_name: _userObject.first_name,
-    last_name: _userObject.last_name,
-    email: _userObject.email
+    firstName: _userObject.firstName,
+    lastName: _userObject.lastName,
+    email: _userObject.email,
+    profile: _userObject.profile,
+    userName: _userObject.userName
   };
 
   return UserObject;

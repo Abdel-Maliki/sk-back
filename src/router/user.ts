@@ -1,15 +1,31 @@
 import {Joi as JOI, Spec } from 'koa-joi-router';
-import {SchemaMap} from 'joi';
-
 import HELPER from './helper';
 import USER_CONTROLLER from '../controller/user';
+import {SchemaMap} from "joi";
+import {ModifiedContext} from "index";
+import ProfileModel, {ProfileDocument} from "../model/profile";
+
 
 class UserRouter {
-  private static userOutput: SchemaMap = {
+
+  public static FIRST_NAME_VALIDATION = JOI.string().alphanum().max(HELPER.defaults.length).label("le nom").required();
+  public static LAST_NAME_VALIDATION = JOI.string().alphanum().max(HELPER.defaults.length).label("le prenom").required();
+  public static EMAIL_NAME_VALIDATION = JOI.string().lowercase().email().required();
+  public static PASSWORD_NAME_VALIDATION = JOI.string().min(2).max(HELPER.defaults.length).label("le mot de passe").required();
+  public static USERNAME_VALIDATION = JOI.string().min(2).max(HELPER.defaults.length).label("le nom d'utilisateur").required();
+  public static PROFILE_VALIDATION = JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)});
+
+  public static readonly userOutput: SchemaMap = {
     id: JOI.string(),
     email: JOI.string(),
-    first_name: JOI.string(),
-    last_name: JOI.string()
+    firstName: JOI.string(),
+    lastName: JOI.string(),
+    userName: JOI.string(),
+    profile: JOI.object({
+      id: JOI.string().required(),
+      name: JOI.string().required(),
+      description: JOI.string().required(),
+    })
   };
 
   public static create:Spec = ({
@@ -19,21 +35,16 @@ class UserRouter {
       continueOnError: true,
       type: HELPER.contentType.JSON,
       body: JOI.object({
-        first_name: JOI.string().alphanum().max(HELPER.defaults.length).required(),
-        last_name: JOI.string().alphanum().max(HELPER.defaults.length).required(),
-        email: JOI.string().lowercase().email().required(),
-        password: JOI.string().min(14).max(HELPER.defaults.length).required(),
+        firstName: UserRouter.FIRST_NAME_VALIDATION,
+        lastName: UserRouter.LAST_NAME_VALIDATION,
+        email: UserRouter.EMAIL_NAME_VALIDATION,
+        password: UserRouter.PASSWORD_NAME_VALIDATION,
+        userName:UserRouter.USERNAME_VALIDATION,
+        profile: UserRouter.PROFILE_VALIDATION,
       }).options({stripUnknown: true}),
-      output: Object.assign({}, HELPER.errorResponse(400), HELPER.validationErrorResponse(), {
-        201: {
-          body: JOI.object({
-            code: 201,
-            data: JOI.object(UserRouter.userOutput)
-          }).options({stripUnknown: false})
-        }
-      })
+      output: HELPER.defaultOutput(JOI.object(UserRouter.userOutput))
     },
-    handler: [HELPER.validation, USER_CONTROLLER.create]
+    handler: [HELPER.validation, UserRouter.addProfile, USER_CONTROLLER.create]
   });
 
   public static update:Spec = ({
@@ -46,20 +57,24 @@ class UserRouter {
         id: JOI.string().regex(HELPER.mongoObjectRegEx)
       }),
       body: JOI.object({
-        first_name: JOI.string().alphanum().max(HELPER.defaults.length),
-        last_name: JOI.string().alphanum().max(HELPER.defaults.length),
+        firstName: UserRouter.FIRST_NAME_VALIDATION,
+        lastName: UserRouter.LAST_NAME_VALIDATION,
+        profile: UserRouter.PROFILE_VALIDATION,
       }).options({stripUnknown: true}),
-      output: Object.assign({}, HELPER.errorResponse(400), HELPER.validationErrorResponse(), {
-        200: {
-          body: JOI.object({
-            code: 200,
-            data: JOI.object(UserRouter.userOutput)
-          }).options({stripUnknown: false})
-        }
-      })
+      output: HELPER.defaultOutput(JOI.object(UserRouter.userOutput))
     },
     handler: [HELPER.validation, USER_CONTROLLER.update]
   });
+
+  private static async addProfile(ctx: ModifiedContext, next: Function) {
+      const profile: ProfileDocument|null = await ProfileModel.findById(ctx.request.body.profile.id);
+    if (profile) {
+      ctx.request.body.profile = profile.toNormalization();
+      await next();
+    } else {
+      ctx.answer(400, "Le profile n'existe pas");
+    }
+  }
 
   public static read:Spec = ({
     method: HELPER.methods.GET,
@@ -69,17 +84,10 @@ class UserRouter {
       params: JOI.object({
         id: JOI.string().regex(HELPER.mongoObjectRegEx)
       }),
-      output: Object.assign({}, HELPER.errorResponse(403), HELPER.errorResponse(400), HELPER.validationErrorResponse(), {
-        200: {
-          body: JOI.object({
-            code: 200,
-            data: JOI.object(UserRouter.userOutput)
-          }).options({stripUnknown: true})
-        }
-      })
+      output: HELPER.defaultOutput(JOI.object(UserRouter.userOutput))
     },
     handler: [HELPER.validation, USER_CONTROLLER.read]
   });
-};
+}
 
 export default UserRouter;

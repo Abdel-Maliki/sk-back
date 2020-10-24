@@ -1,31 +1,32 @@
-import { BaseContext, Middleware as KoaMiddleware} from 'koa';
-import { Responses, JwtFunctionResponse} from './../types/';
+import { Middleware as KoaMiddleware} from 'koa';
+import {Responses, JwtFunctionResponse, ModifiedContext} from './../types/';
 import JWT from './../lib/jwt';
+import {Pagination} from "../common/pagination";
 
 /**
  * @param secret - The JWT Secret
  * @returns Returns a function for Koa middleware injection
 */
 type JwtFunction           = (secret: string) => JwtFunctionResponse;
-type AuthorizationFunction = (ctx: BaseContext) => string|null;
+type AuthorizationFunction = (ctx: ModifiedContext) => string|null;
 
 class Middleware {
-  private static resolveAuthorizationHeader:AuthorizationFunction = (ctx: BaseContext) => {
+  private static resolveAuthorizationHeader:AuthorizationFunction = (ctx: ModifiedContext) => {
     if (!ctx.header || !ctx.header.authorization) {
       return;
     }
-  
+
     const PARTS = ctx.header.authorization.split(' ');
-  
+
     if (PARTS.length === 2) {
       const SCHEME:string      = PARTS[0];
       const CREDENTIALS:string = PARTS[1];
-  
+
       if (/^Bearer$/i.test(SCHEME)) {
         return CREDENTIALS;
       }
     }
-  
+
     return null;
   };
 
@@ -33,24 +34,24 @@ class Middleware {
     const Jwt = new JWT({secret});
 
     class JwtClass {
-      public static middleware = async (ctx: BaseContext, next: Function) => {
+      public static middleware = async (ctx: ModifiedContext, next: Function) => {
         ctx.jwt = Jwt;
         return await next();
       };
 
-      public static authenticate = async (ctx: BaseContext, next: Function) => {
+      public static authenticate = async (ctx: ModifiedContext, next: Function) => {
         const token = Middleware.resolveAuthorizationHeader(ctx);
-      
+
         if (token !== null) {
-          const decodedToken:{id: string}|null = await Jwt.verify(token).catch( err => null);
+          const decodedToken:{id: string}|null = await Jwt.verify(token).catch( () => null);
           if (decodedToken) {
             ctx.state.user = decodedToken;
             return await next();
           } else {
-            return ctx.respond(401, Responses.INVALID_CREDS);
+            return ctx.answer(401, Responses.INVALID_CREDS);
           }
         } else {
-          return ctx.respond(401, Responses.INVALID_CREDS);
+          return ctx.answer(401, Responses.INVALID_CREDS);
         }
       }
     }
@@ -58,12 +59,13 @@ class Middleware {
     return JwtClass;
   };
 
-  public static respond:KoaMiddleware = async (ctx: BaseContext, next: Function) => {
+  public static answer:KoaMiddleware = async (ctx: ModifiedContext, next: Function) => {
     /**
      * @param status - The http code
      * @param body - An Object or string input depending on the http code
-    */
-    ctx.respond = (status: number, body: object|string) => {
+     * @param pagination - Le nombre total d'element dans la collection
+     */
+    ctx.answer = (status: number, body: object|string, pagination?: Pagination) => {
       ctx.status        = status;
       let error:boolean = false;
 
@@ -74,13 +76,14 @@ class Middleware {
       if (error === true) {
         ctx.body = {
           code: ctx.status,
-          error: (Array.isArray(body)) ? body : {message: body}    
+          error: (Array.isArray(body)) ? body : {message: body}
         };
       } else {
         ctx.body = {
           code: ctx.status,
           data: (typeof body === 'object') ? body : (Array.isArray(body)) ? body : {message: body}
         };
+        if (pagination)  ctx.body.pagination = pagination;
       }
 
       return ctx;
@@ -88,15 +91,15 @@ class Middleware {
 
     await next();
   };
-  
-  public static onError:KoaMiddleware = async (ctx: BaseContext, next: Function) => {
+
+  public static onError:KoaMiddleware = async (ctx: ModifiedContext, next: Function) => {
     try {
       await next();
     } catch (err) {
       console.error(err.stack || err);
-      ctx.respond(500, Responses.INTERNAL_ERROR);
+      ctx.answer(500, Responses.INTERNAL_ERROR);
     }
   };
-};
+}
 
 export default Middleware;

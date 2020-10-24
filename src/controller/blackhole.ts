@@ -1,9 +1,10 @@
 import { Responses } from './../types';
-import { BaseContext } from 'koa';
+import {ModifiedContext} from "index";
+;
 
 class Blackhole {
-  public static read = async (ctx: BaseContext) => {
-    return ctx.respond(404, Responses.NOT_FOUND);
+  public static read = async (ctx: ModifiedContext) => {
+    return ctx.answer(404, Responses.NOT_FOUND);
   };
 };
 

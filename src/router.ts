@@ -4,6 +4,8 @@ import {JwtFunctionResponse} from './types/';
 
 import BLACKHOLE_ROUTES from './router/blackhole';
 import USER_ROUTES from './router/user';
+import PROFILE_ROUTES from './router/profile-router';
+import PROFILE_ROLE_ROUTES from './router/profile-role-router';
 import LOGIN_ROUTES from './router/login';
 import HEALTH_ROUTES from './router/health';
 
@@ -12,10 +14,12 @@ class Router {
     const publicRouter  = ROUTER();
     const privateRouter = ROUTER();
 
-    privateRouter.use(jwtMiddleware.authenticate);
+    //privateRouter.use(jwtMiddleware.authenticate);
 
     privateRouter.route(USER_ROUTES.read)
     privateRouter.route(USER_ROUTES.update)
+    privateRouter.route(PROFILE_ROUTES.specs)
+    privateRouter.route(PROFILE_ROLE_ROUTES.specs)
 
     publicRouter.route(USER_ROUTES.create);
     publicRouter.route(LOGIN_ROUTES.create);

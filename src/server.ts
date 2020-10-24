@@ -1,4 +1,4 @@
-import {ConfigServerType} from './types/';
+import {ConfigServerType} from 'index';
 
 import KOA from 'koa';
 import MORGAN from 'koa-morgan';
@@ -7,16 +7,14 @@ import HELMET from 'koa-helmet';
 import ROUTER from './router';
 import DB from './db';
 import MIDDLEWARE from './middleware/';
-import {JwtFunctionResponse} from './types/';
+import {JwtFunctionResponse} from 'index';
 
 class Server {
   protected app: KOA;
-  protected port: number;
   protected config: ConfigServerType;
 
   constructor (config: ConfigServerType) {
     this.app    = new KOA();
-    this.port   = config.port;
     this.config = config;
   };
 
@@ -37,7 +35,7 @@ class Server {
   };
 
   protected middleware ():Server {
-    this.use(MIDDLEWARE.respond);
+    this.use(MIDDLEWARE.answer);
     this.use(MIDDLEWARE.onError);
     this.use(this.jwt().middleware)
     this.use(MORGAN('combined'));
@@ -47,7 +45,7 @@ class Server {
   }
 
   protected db ():void {
-    DB.connect({mongo_uri: this.config.mongo_uri});
+    DB.connect({mongo_uri: this.config.mongo_uri}).then();
   };
 
   public initiate ():Server {
@@ -58,11 +56,11 @@ class Server {
   };
 
   public listen ():KOA {
-    this.app.listen(this.port);
-    console.log(`Server is listening on port ${this.port}`);
+    this.app.listen(this.config.port);
+    console.log(`Server is listening on port ${this.config.port}`);
     return this.app;
   }
-};
+}
 
 export default Server;
 
