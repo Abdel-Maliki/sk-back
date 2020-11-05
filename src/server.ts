@@ -1,4 +1,4 @@
-import {ConfigServerType} from 'index';
+import {ConfigServerType, JwtFunctionResponse} from 'index';
 
 import KOA from 'koa';
 import MORGAN from 'koa-morgan';
@@ -7,25 +7,39 @@ import HELMET from 'koa-helmet';
 import ROUTER from './router';
 import DB from './db';
 import MIDDLEWARE from './middleware/';
-import {JwtFunctionResponse} from 'index';
+import {DefaultUserCreator} from "./Service/default-user-creator";
 
 class Server {
-  protected app: KOA;
-  protected config: ConfigServerType;
+    protected app: KOA;
+    protected config: ConfigServerType;
 
-  constructor (config: ConfigServerType) {
-    this.app    = new KOA();
-    this.config = config;
-  };
+    constructor(config: ConfigServerType) {
+        this.app = new KOA();
+        this.config = config;
+    };
 
-  protected use (middleware: KOA.Middleware):Server {
-    this.app.use(middleware);
-    return this;
-  };
+    public async initiate(): Promise<Server> {
+        await this.db();
+        this.middleware();
+        await this.userCreator();
+        this.router();
+        return this;
+    };
 
-  protected jwt (): JwtFunctionResponse {
-    return MIDDLEWARE.jwt(this.config.jwt_secret);
-  }
+    public listen(): KOA {
+        this.app.listen(this.config.port);
+        console.log(`Server is listening on port ${this.config.port}`);
+        return this.app;
+    }
+
+    protected use(middleware: KOA.Middleware): Server {
+        this.app.use(middleware);
+        return this;
+    };
+
+    protected jwt(): JwtFunctionResponse {
+        return MIDDLEWARE.jwt(this.config.jwt_secret);
+    }
 
   protected router ():Server {
     const Router = ROUTER.initiate(this.jwt());
@@ -34,32 +48,23 @@ class Server {
     return this;
   };
 
-  protected middleware ():Server {
-    this.use(MIDDLEWARE.answer);
-    this.use(MIDDLEWARE.onError);
-    this.use(this.jwt().middleware)
-    this.use(MORGAN('combined'));
-    this.use(HELMET());
-    this.use(CORS());
-    return this;
-  }
+    protected middleware(): Server {
+        this.use(MIDDLEWARE.answer);
+        this.use(MIDDLEWARE.onError);
+        this.use(this.jwt().middleware)
+        this.use(MORGAN('combined'));
+        this.use(HELMET());
+        this.use(CORS());
+        return this;
+    }
 
-  protected db ():void {
-    DB.connect({mongo_uri: this.config.mongo_uri}).then();
-  };
+    protected db(): Promise<void> {
+        return DB.connect({mongo_uri: this.config.mongo_uri});
+    };
 
-  public initiate ():Server {
-    this.db();
-    this.middleware();
-    this.router();
-    return this;
-  };
-
-  public listen ():KOA {
-    this.app.listen(this.config.port);
-    console.log(`Server is listening on port ${this.config.port}`);
-    return this.app;
-  }
+    protected userCreator(): Promise<void> {
+        return DefaultUserCreator.createDefaultUser();
+    };
 }
 
 export default Server;

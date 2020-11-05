@@ -1,7 +1,6 @@
 import {Joi as JOI, OutputValidation} from 'koa-joi-router';
-import {ObjectSchema, JoiObject} from "joi";
+import {JoiObject, ObjectSchema} from "joi";
 import {MessageError, ModifiedContext} from "index";
-import ProfileModel, {ProfileDocument} from "../model/profile";
 
 enum methods {
     POST = 'post',
@@ -27,8 +26,7 @@ class Helper {
     public static mongoObjectRegEx = /^[a-f\d]{24}$/i;
 
     public static validation = async (ctx: ModifiedContext, next: Function) => {
-        console.log('Class: Helper, Function: validation, Line 30 , ctx.invalid: '
-        , ctx.invalid);
+        new Map([['lll', 'lll'], ['lll', 'lll']]);
         if (ctx.invalid) {
             let body: { details: Array<MessageError> } = ctx.invalid.body || ctx.invalid.query || ctx.invalid.params;
             let response: Array<MessageError | undefined | null> = body && body.details ? body.details : [];
@@ -36,15 +34,6 @@ class Helper {
                 ? Helper.messageWrapper(response[0]) : response
             ctx.answer(412, message)
         } else {
-            return await next();
-        }
-    };
-
-    public static validation2 = async (ctx: ModifiedContext, next: Function, role: string) => {
-        const allrofiles: ProfileDocument[] | null = await ProfileModel.find({}).catch(() => null);
-        if (!allrofiles || allrofiles.length === 0){
-            ctx.answer(412, role)
-        }else {
             return await next();
         }
     };
@@ -108,6 +97,9 @@ class Helper {
     };
 
     public static messageWrapper(messageError: MessageError) {
+        console.log('Class: Helper, Function: messageWrapper, Line 109 , messageError: '
+            , messageError);
+
         return (messageError.type.includes('required'))
             ? `${messageError.context.label} est requis${messageError.context.label.toLowerCase().startsWith('la') ? 'e' : ''}`
             : messageError.type.startsWith('number')
@@ -116,7 +108,9 @@ class Helper {
                     ? Helper.stringMessageWrapper(messageError)
                     : (messageError.type.endsWith('empty'))
                         ? `${messageError.context.label} n'est pas autorisé à être vide`
-                        : `${messageError.context.label} invalid`
+                        : messageError.type.includes('unique')
+                            ? `${messageError.context.label} doit être unique`
+                            : `${messageError.context.label} invalid`
 
         /*if (messageError.type.includes('max'))
             return `La taille maximale pour ${messageError.context.label} est ${messageError.context.limit}`*/

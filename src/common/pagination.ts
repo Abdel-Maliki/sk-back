@@ -11,7 +11,6 @@ export interface Pagination {
     direction?: number;
     globalFilter?: string;
     filters?: {
-        [key: string]: any
-
+        [key: string]: {value: string, matchMode: "contains"}
     };
 }

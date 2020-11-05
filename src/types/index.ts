@@ -26,7 +26,7 @@ type ConfigJwtType       = { secret: string };
 */
 type JwtFunctionResponse = { middleware: KoaMiddleware, authenticate: KoaMiddleware };
 
-type UserStateType       = { id: string };
+type UserStateType       = { id: string , profile: string};
 
 type MessageError = {
     message: string,
@@ -64,7 +64,8 @@ enum Responses {
 interface ModifiedContext extends Context {
   jwt?: JWT;
   invalid?: any;
-  answer?: (status: number, body: object|string, pagination?: Pagination) => ModifiedContext;
+  answer?: (status: number, body: any, pagination?: Pagination) => ModifiedContext;
+  pagination?: Pagination;
   state: ConfigStateType;
 }
 

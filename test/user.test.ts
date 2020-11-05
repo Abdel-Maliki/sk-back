@@ -11,7 +11,7 @@ let server:null|http.Server = null;
 const getRandomInt = (min: number, max: number) => {
   min = Math.ceil(min);
   max = Math.floor(max);
-  
+
   return Math.floor(Math.random() * (max - min + 1)) + min;
 };
 
@@ -29,7 +29,7 @@ describe('POST /user', () => {
   it('should return some defined error message with valid parameters', (done) => {
     const expect = chai.expect;
     return request(server).post('/user')
-      .send({email: 'test@me.com', password: 'zxxzxzxzxzxzxzzx', first_name: 'bob', last_name: 'tester'})
+      .send({email: 'test@me.com', password: 'zxxzxzxzxzxzxzzx', firstName: 'bob', lastName: 'tester'})
       .expect(200)
       .end(function(err, res) {
         expect(err).not.to.be.undefined;

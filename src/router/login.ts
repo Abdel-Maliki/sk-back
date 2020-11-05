@@ -15,7 +15,7 @@ class LoginRouter {
         email: JOI.string().lowercase().email().required(),
         password: JOI.string().max(HELPER.defaults.length).required()
       }).options({stripUnknown: true}),
-      output: Object.assign({}, HELPER.errorResponse(401), HELPER.validationErrorResponse(), {
+      /*output: Object.assign({}, HELPER.errorResponse(401), HELPER.validationErrorResponse(), {
         200: {
           body: JOI.object({
             code: 200,
@@ -25,7 +25,7 @@ class LoginRouter {
             })
           }).options({stripUnknown: true})
         }
-      })
+      })*/
     },
     handler: [HELPER.validation, LOGIN_CONTROLLER.create]
   });

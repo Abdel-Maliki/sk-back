@@ -4,8 +4,8 @@
  */
 
 export type EntityBase = {
-    id: number | string;
-    createdAt: string;
-    updatedAt: string;
-    createdBy: number;
+    id?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    createdBy?: string;
 }

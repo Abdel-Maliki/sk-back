@@ -15,10 +15,10 @@ class Services {
       mongo_uri: ENV.MONGO_URI   ? ENV.MONGO_URI   : 'mongodb://localhost:27017/test',
       jwt_secret: ENV.JWT_SECRET ? ENV.JWT_SECRET  :'12345678901234567890'
     };
-  
+
     const Server = new SERVER(CONFIG);
-    return Server.initiate().listen();
+    return Server.initiate().then(value => value.listen());
   };
-};
+}
 
 export default Services.server();

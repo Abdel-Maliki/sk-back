@@ -1,14 +1,14 @@
 import BCRYPT from 'bcrypt';
 import MONGOOSE from 'mongoose';
 import {ProfileType} from "./profile";
+import {EntityBase} from "./entity-base";
 
 type comparePasswordFunction = (candidatePassword: string) => Promise<boolean>;
 type toNormalizationFunction = () => UserType;
 
-export type UserDocument = MONGOOSE.Document & {
+export type UserDocument = MONGOOSE.Document & EntityBase & {
   email: string,
-  firstName: string,
-  lastName: string,
+  name: string,
   password: string,
   userName: string,
   profile: ProfileType,
@@ -16,11 +16,9 @@ export type UserDocument = MONGOOSE.Document & {
   toNormalization: toNormalizationFunction
 };
 
-export type UserType = {
-  id: string | null,
+export type UserType = EntityBase & {
   email: string | null,
-  firstName: string | null,
-  lastName: string | null,
+  name: string | null,
   userName: string| null,
   profile: ProfileType| null,
 };
@@ -28,8 +26,7 @@ export type UserType = {
 const userSchema = new MONGOOSE.Schema({
   email: { type: String, unique: true },
   userName: { type: String, unique: true },
-  firstName: { type: String, default: '' },
-  lastName: { type: String, default: ''},
+  name: { type: String, default: '' },
   password: String,
   profile: {
     id: { type: String, default: '', required: true },
@@ -74,11 +71,13 @@ const toNormalization: toNormalizationFunction = function () {
 
   let UserObject: UserType = {
     id: _userObject._id.toString(),
-    firstName: _userObject.firstName,
-    lastName: _userObject.lastName,
+    name: _userObject.name,
     email: _userObject.email,
     profile: _userObject.profile,
-    userName: _userObject.userName
+    userName: _userObject.userName,
+    createdAt: _userObject.createdAt,
+    updatedAt: _userObject.updatedAt,
+    createdBy: _userObject.createdBy,
   };
 
   return UserObject;

@@ -6,18 +6,20 @@ type toNormalizationFunction = () => ProfileType;
 export type ProfileDocument = MONGOOSE.Document & EntityBase & {
   name: string,
   description: string,
+  roles: string[] | null,
   toNormalization: toNormalizationFunction
 };
 
 export type ProfileType = EntityBase & {
-  id: string | null,
   name: string | null,
   description: string | null,
+  roles: string[] | null,
 };
 
 const profileSchema = new MONGOOSE.Schema({
   name: { type: String, unique: true },
   description: { type: String, default: '' },
+  roles: { type: Array, default: [] },
 }, { timestamps: true });
 
 const toNormalization: toNormalizationFunction = function () {
@@ -26,6 +28,7 @@ const toNormalization: toNormalizationFunction = function () {
   let ProfileObject: ProfileType = {
     id: _profileObject._id.toString(),
     name: _profileObject.name,
+    roles: _profileObject.roles,
     description: _profileObject.description,
     createdAt: _profileObject.createdAt,
     updatedAt: _profileObject.updatedAt,
