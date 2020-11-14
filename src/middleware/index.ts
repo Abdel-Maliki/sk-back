@@ -4,6 +4,8 @@ import JWT from './../lib/jwt';
 import {Pagination} from "../common/pagination";
 import UserModel, {UserDocument} from './../model/user';
 import ControllerHelpers from "../controller/controller-helpers";
+import {DefaultUserCreator} from "../service/default-user-creator";
+import {LogState} from "../model/log";
 
 
 /**
@@ -29,9 +31,17 @@ class Middleware {
                     const decodedToken: { id: string } | null = await Jwt.verify(token).catch(() => null);
                     if (decodedToken && decodedToken.id) {
                         const user: UserDocument = await UserModel.findById(decodedToken.id).exec().catch(() => null);
-                        if (user && decodedToken.id && user.toNormalization().id === decodedToken.id) {
-                            ctx.state.user = {id: decodedToken.id, profile: user.toNormalization().profile.name}
-                            return ControllerHelpers.haseRole(ctx, next);
+                        if (user && decodedToken.id && user._id.toString() === decodedToken.id.toString() && user.active) {
+                            ctx.state.user = {
+                                id: decodedToken.id,
+                                userName: user.userName,
+                                profile: user.profile && user.profile.name && user.profile.name.trim().length > 0
+                                    ? user.profile.name
+                                    : user.userName === DefaultUserCreator.DEFAULT_PROFILE_NAME
+                                        ? DefaultUserCreator.DEFAULT_PROFILE_NAME
+                                        : null
+                            }
+                            return ControllerHelpers.haseRoleMidleWare(ctx, next);
                         } else {
                             return ctx.answer(401, Responses.INVALID_CREDS);
                         }
@@ -67,6 +77,7 @@ class Middleware {
                     error: (Array.isArray(body)) ? body : {message: body}
                 };
             } else {
+                ctx.state.log.state = LogState.SUCCES;
                 ctx.body = {
                     code: ctx.status,
                     data: (typeof body === 'object') ? body : (Array.isArray(body)) ? body : {message: body}

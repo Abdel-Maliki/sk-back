@@ -1,6 +1,7 @@
 import { Middleware as KoaMiddleware, Context} from 'koa';
 import JWT from './../lib/jwt';
 import {Pagination} from "../common/pagination";
+import {LogType} from "../model/log";
 
 /**
  * @remarks
@@ -26,7 +27,7 @@ type ConfigJwtType       = { secret: string };
 */
 type JwtFunctionResponse = { middleware: KoaMiddleware, authenticate: KoaMiddleware };
 
-type UserStateType       = { id: string , profile: string};
+type UserStateType       = { id: string , profile: string, userName: string};
 
 type MessageError = {
     message: string,
@@ -40,7 +41,8 @@ type MessageError = {
  * Extends ctx.state.user type to the base context
 */
 type ConfigStateType     = {
-  user: UserStateType|null
+  user: UserStateType|null,
+  log: LogType | null
 };
 
 /**

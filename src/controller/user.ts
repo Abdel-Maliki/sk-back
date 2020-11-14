@@ -1,7 +1,11 @@
-import {ModifiedContext} from './../types';
+import {ModifiedContext, Responses} from './../types';
 
 import {Pagination} from "../common/pagination";
-import ProfileModel, {ProfileDocument} from "../model/profile";
+import ProfileModel, {ProfileDocument, ProfileType} from "../model/profile";
+import UserModel, {UserDocument, UserType} from "../model/user";
+import {DefaultUserCreator} from "../service/default-user-creator";
+import ControllerHelpers from "./controller-helpers";
+import Roles from "../constante/roles";
 
 /**
  * @param firstName - A valid string that has already been validated by JOI
@@ -19,19 +23,34 @@ type InputCreateBodyType = { firstName: string, lastName: string, password: stri
 
 class UserController {
 
-    public static setProfile = async (ctx: ModifiedContext, next: Function) => {
-        const profile: ProfileDocument = await ProfileModel.findById(ctx.request.body.entity.profile.id).catch(() => {
+    private static readonly DEFAULT_PASSWORD = '12345678';
+
+    public static checkProfile = async (ctx: ModifiedContext, next: Function) => {
+        const profile: ProfileDocument = await ProfileModel.findById(ctx.request.body.profile.id).catch(() => {
             return null;
         });
 
         if (profile === null) {
             return ctx.answer(400, `Le profile ${ctx.request.params['id']} n'existe pas`);
         } else {
-            ctx.request.body.entity.profile = profile.toNormalization();
+            ctx.request.body.profile = profile.toNormalization();
             await next();
         }
     };
 
+    public static setPassword = async (ctx: ModifiedContext, next: Function) => {
+        ctx.request.body.password = UserController.DEFAULT_PASSWORD;
+        await next();
+    };
+
+
+    public static adminCheck = async (ctx: ModifiedContext, next: Function) => {
+        if (ctx.request.body.userName.toLowerCase() === DefaultUserCreator.DEFAULT_PROFILE_NAME.toLowerCase()) {
+            return ctx.answer(400, `Le nom d'utilisateur ne peut pas être admin`);
+        } else {
+            await next();
+        }
+    }
 
     public static condition(pagination: Pagination): any {
         const globalFilter = pagination.globalFilter;
@@ -48,7 +67,7 @@ class UserController {
     }
 
     public static async addProfile(ctx: ModifiedContext, next: Function) {
-        const profile: ProfileDocument|null = await ProfileModel.findById(ctx.request.body.profile.id);
+        const profile: ProfileDocument | null = await ProfileModel.findById(ctx.request.body.profile.id);
         if (profile) {
             ctx.request.body.profile = profile.toNormalization();
             await next();
@@ -56,6 +75,122 @@ class UserController {
             ctx.answer(400, "Le profile n'existe pas");
         }
     }
+
+    public static ckeckExistingAndNotAdmin = async (ctx: ModifiedContext, next: Function, action: string) => {
+
+        const user: UserDocument = await UserModel.findById(ctx.request.params['id']).catch(() => null);
+
+        if (user && user.userName === DefaultUserCreator.DEFAULT_PROFILE_NAME) {
+            return ctx.answer(400, `Impossible de ${action} l'utilisateur admin`);
+        } else if (user) {
+            await next();
+        } else {
+            return ctx.answer(400, `Cet utilisateur n'existe pas`);
+        }
+    };
+
+    public static checkCreateActiveRole = async (ctx: ModifiedContext, next: Function) => {
+        if (ctx.request.body.active) {
+            return ControllerHelpers.haseRoleMidleWare(ctx, next, Roles.ACTIVATE_ACCOUNT);
+        } else {
+            await next();
+        }
+    }
+
+    public static beforeCreate = async (ctx: ModifiedContext, next: Function) => {
+        const userType: UserType = ctx.request.body;
+        const user: UserDocument = await UserModel.findOne({
+            $or: [{userName: {$in: [userType.userName, userType.email]}}, {email: {$in: [userType.userName, userType.email]}}]
+        }).exec().catch(() => null);
+
+        return await UserController.finishedCheck(ctx, next, userType, user);
+    }
+
+    public static beforeUpdate = async (ctx: ModifiedContext, next: Function) => {
+        const userType: UserType = ctx.request.body;
+        const user: UserDocument = await UserModel.findOne({
+            _id: {$ne: ctx.request.params['id']},
+            $or: [
+                {userName: {$in: [userType.userName, userType.email]}},
+                {email: {$in: [userType.userName, userType.email]}}
+            ]
+        }).exec().catch((s) => {
+            return null;
+        });
+        return await UserController.finishedCheck(ctx, next, userType, user);
+    }
+
+    public static ckeckAdminNotInList = async (ctx: ModifiedContext, next: Function, action: string) => {
+        const criteria: any = {_id: {$in: ctx.request.body}, userName: DefaultUserCreator.DEFAULT_PROFILE_NAME};
+        const totalExisting: number = await UserModel.countDocuments(criteria).catch((e) => {
+            return -1;
+        });
+
+        if (totalExisting === -1) {
+            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+        } else if (totalExisting > 0) {
+            return ctx.answer(400, `Impossible de ${action} l'utilisateur admin`);
+        } else {
+            await next();
+        }
+    };
+
+    public static activateOrDesableAccount = async (ctx: ModifiedContext, next: Function, ids: string[], active: boolean) => {
+        const data: any = await UserModel.updateMany({_id: {$in: ids}}, {$set: {active}}).catch(() => {
+            return null;
+        });
+        if (data) {
+            await next();
+        } else {
+            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+        }
+    };
+
+    public static resetPassword = async (ctx: ModifiedContext) => {
+        const data: any = await UserModel.updateOne(
+            {_id: ctx.request.params['id']},
+            {$set: {password: UserController.DEFAULT_PASSWORD }}).catch(() => null);
+
+        if (data) {
+            await ctx.answer(200, []);
+        } else {
+            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+        }
+    };
+
+    public static checkUpdateActiveRole = async (ctx: ModifiedContext, next: Function) => {
+        const user: UserDocument = await UserModel.findOne({_id: {$ne: ctx.request.params['id']}}).exec().catch(() => null);
+        if (user.active === ctx.request.body.active) {
+            return next();
+        } else if (user.active) {
+            return ControllerHelpers.haseRoleMidleWare(ctx, next, Roles.DISABLED_ACCOUNT);
+        } else {
+            return ControllerHelpers.haseRoleMidleWare(ctx, next, Roles.ACTIVATE_ACCOUNT);
+        }
+
+    };
+
+    public static currentUserRoles = async (ctx: ModifiedContext) => {
+        if (ctx.state.user.profile === DefaultUserCreator.DEFAULT_PROFILE_NAME) {
+            return ctx.answer(200, Object.values(Roles));
+        } else {
+            const profile: ProfileType = await ProfileModel
+                .findOne({name: ctx.state.user.profile}, {roles: 1, _id: 0}).exec().catch(() => null);
+            return ctx.answer(200, profile && profile.roles ? profile.roles : []);
+        }
+
+    }
+
+    private static finishedCheck = async (ctx: ModifiedContext, next: Function, userType: UserType, user: UserDocument) => {
+        if (user && (userType.userName === user.userName || userType.userName === user.email)) {
+            return ctx.answer(400, `Ce nom d'utilisateur existe déja`);
+        } else if (user && (userType.email === user.userName || userType.email === user.email)) {
+            return ctx.answer(400, `L'adresse email existe déja`);
+        } else {
+            return await next();
+        }
+    }
+
 }
 
 export default UserController;

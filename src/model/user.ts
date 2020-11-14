@@ -11,6 +11,7 @@ export type UserDocument = MONGOOSE.Document & EntityBase & {
   name: string,
   password: string,
   userName: string,
+  active: boolean,
   profile: ProfileType,
   comparePassword: comparePasswordFunction,
   toNormalization: toNormalizationFunction
@@ -21,16 +22,18 @@ export type UserType = EntityBase & {
   name: string | null,
   userName: string| null,
   profile: ProfileType| null,
+  active: boolean,
 };
 
 const userSchema = new MONGOOSE.Schema({
   email: { type: String, unique: true },
   userName: { type: String, unique: true },
   name: { type: String, default: '' },
+  active: { type: Boolean, default: false },
   password: String,
-  profile: {
-    id: { type: String, default: '', required: true },
-    name: { type: String, default: '', required: true },
+  profile:  {
+    id: { type: String, default: ''},
+    name: { type: String, default: ''},
     description: { type: String, default: '' }
   }
 }, { timestamps: true });
@@ -75,6 +78,7 @@ const toNormalization: toNormalizationFunction = function () {
     email: _userObject.email,
     profile: _userObject.profile,
     userName: _userObject.userName,
+    active: _userObject.active,
     createdAt: _userObject.createdAt,
     updatedAt: _userObject.updatedAt,
     createdBy: _userObject.createdBy,

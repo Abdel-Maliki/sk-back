@@ -1,4 +1,5 @@
 import ROUTER_HELPER from "../router/router-helper";
+import {RoutesPrefix} from "./routes-prefix";
 
 /**
  * @author abdel-maliki
@@ -35,6 +36,10 @@ class RoutersRoleHelper {
         return methods.PUT + ROUTER_HELPER.deleteAllPath(base);
     }
 
+    public static deleteAllAndGet(base: string): string {
+        return methods.PUT + ROUTER_HELPER.deleteAllAndGetPath(base);
+    }
+
     public static createAndGet(base: string): string {
         return methods.POST + ROUTER_HELPER.createAndGetPath(base);
     }
@@ -53,6 +58,22 @@ class RoutersRoleHelper {
 
     public static search(base: string): string {
         return methods.PUT + ROUTER_HELPER.searchPath(base);
+    }
+
+    public static getPattern(base: string, path: string): string {
+        return methods.GET + base + path;
+    }
+
+    public static putPattern(base: string, path: string): string {
+        return methods.PUT + base + path;
+    }
+
+    public static postPattern(base: string, path: string): string {
+        return methods.POST + base + path;
+    }
+
+    public static deletePattern(base: string, path: string): string {
+        return methods.DELETE + base + path;
     }
 }
 

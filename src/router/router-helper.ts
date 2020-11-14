@@ -9,15 +9,15 @@ class RouterHelper {
     }
 
     public static readPath(base: string = ''): string {
-        return `${base}/:id`;
+        return `${base}/read/:id`;
     }
 
     public static updatePath(base: string = ''): string {
-        return `${base}/:id`;
+        return `${base}/update/:id`;
     }
 
     public static deletePath(base: string = ''): string {
-        return `${base}/:id`;
+        return `${base}/delete/:id`;
     }
 
     public static allPath(base: string = ''): string {
@@ -26,6 +26,10 @@ class RouterHelper {
 
     public static deleteAllPath(base: string = ''): string {
         return `${base}/delete/all`;
+    }
+
+    public static deleteAllAndGetPath(base: string = ''): string {
+        return `${base}/delete-all/and-get`;
     }
 
     public static createAndGetPath(base: string = ''): string {

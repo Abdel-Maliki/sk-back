@@ -25,18 +25,19 @@ class ProfileController {
         if (totalExisting === null) {
             return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
         } else if (totalExisting === 0) {
-            await next();
+            return await ProfileController.checkNameAndDescription(ctx, next);
         } else {
             return ctx.answer(400, `${body.name} existe déja`);
         }
     };
 
     public static checkNameAndDescription = async (ctx: ModifiedContext, next: Function) => {
-        if (ctx.request.body.name === DefaultUserCreator.DEFAULT_PROFILE_NAME) {
+        if (ctx.request.body.name.toLowerCase() === DefaultUserCreator.DEFAULT_PROFILE_NAME.toLowerCase()) {
             return ctx.answer(400, `Le nom est ne peut pas être admin`);
-        } else if (ctx.request.body.description === DefaultUserCreator.DEFAULT_PROFILE_NAME) {
+        } else if (ctx.request.body.description
+            && ctx.request.body.description.toLowerCase() === DefaultUserCreator.DEFAULT_PROFILE_NAME.toLowerCase()) {
             return ctx.answer(400, `Le nom est ne peut pas être admin`);
-        }else {
+        } else {
             await next();
         }
     }
@@ -53,6 +54,20 @@ class ProfileController {
             await next();
         } else {
             return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+        }
+    };
+
+    public static ckeckAdminNotInList = async (ctx: ModifiedContext, next: Function) => {
+
+        const criteria: any = {_id: {$in: ctx.request.body}, name: DefaultUserCreator.DEFAULT_PROFILE_NAME};
+        const totalExisting: number = await ProfileModel.countDocuments(criteria).catch(() => {
+            return null;
+        });
+
+        if (totalExisting === null || totalExisting > 0) {
+            return ctx.answer(400, `Impossible de supprimer le profile admin`);
+        } else {
+            await next();
         }
     };
 

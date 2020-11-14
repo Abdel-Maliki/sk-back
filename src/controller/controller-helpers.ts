@@ -4,6 +4,10 @@ import {ModifiedContext, Responses} from './../types';
 import ProfileModel from "../model/profile";
 import {DefaultUserCreator} from "../service/default-user-creator";
 import ROUTEURS_ROLE from "../constante/routeurs-role";
+import SINGLE_AUTH_PATHS from "../constante/single-auth-paths";
+import {ObjectSchema} from "joi";
+import {Joi as JOI} from "koa-joi-router";
+import {LogState} from "../model/log";
 
 
 /**
@@ -12,6 +16,15 @@ import ROUTEURS_ROLE from "../constante/routeurs-role";
  */
 
 class ControllerHelpers {
+
+    public static readonly paginationInput: ObjectSchema = JOI.object({
+        page: JOI.number().min(0).required(),
+        size: JOI.number().min(1).required(),
+        sort: JOI.string(),
+        direction: JOI.number().equal([1, -1]),
+        globalFilter: JOI.string(),
+        filters: JOI.object(),
+    }).options({stripUnknown: true});
 
     public static async paginate<MODEL extends Document & { toNormalization(): DOCUMENT_TYPE }, DOCUMENT_TYPE>(
         model: Model<MODEL>,
@@ -86,7 +99,6 @@ class ControllerHelpers {
         }
     };
 
-
     public static async update<MODEL extends Document & { toNormalization(): DOCUMENT_TYPE }, DOCUMENT_TYPE>(
         ctx: ModifiedContext,
         model: Model<MODEL>,
@@ -111,6 +123,7 @@ class ControllerHelpers {
         session?: ClientSession,
         options: any = {new: true}
     ) {
+
         const update: any = {$set: ctx.request.body};
         const updateProfile: MODEL | null = await model.findByIdAndUpdate(
             ctx.request.params['id'], update, options
@@ -157,9 +170,9 @@ class ControllerHelpers {
         model: Model<MODEL>,
         session?: ClientSession,
     ) {
-        const profile: MODEL | null = await model.findByIdAndDelete(ctx.request.params['id']).session(session);
+        const data: MODEL | null = await model.findByIdAndDelete(ctx.request.params['id']).session(session);
 
-        if (profile) {
+        if (data) {
             await next();
         } else {
             return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
@@ -169,7 +182,8 @@ class ControllerHelpers {
     public static async deleteAll<MODEL extends Document & { toNormalization(): DOCUMENT_TYPE }, DOCUMENT_TYPE>(
         ctx: ModifiedContext,
         model: Model<MODEL>,
-        session?: ClientSession
+        next?: Function,
+        session?: ClientSession,
     ) {
         const withSession: boolean = !!session
         let error: any = null;
@@ -187,7 +201,7 @@ class ControllerHelpers {
             return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
         } else {
             if (!withSession) await session.commitTransaction();
-            return ctx.answer(200, {});
+            return !!next ? await next() : ctx.answer(200, {});
         }
     };
 
@@ -204,38 +218,63 @@ class ControllerHelpers {
         }
     }
 
-    public static async existeId<MODEL extends Document & { toNormalization(): DOCUMENT_TYPE }, DOCUMENT_TYPE>(
+    public static async existeValuesInKey<MODEL extends Document & { toNormalization(): DOCUMENT_TYPE }, DOCUMENT_TYPE>(
         ctx: ModifiedContext,
         next: Function,
         model: Model<MODEL>,
-        id?: string
+        key: string,
+        values: string[],
+        requiredQuantity: number,
+        errorMessage: string
     ) {
-        if (!id) id = ctx.request.params['id'];
-        const totalExisting: number = await model.findById(id).catch(() => {
-            return null;
+        const criteria: any = {[key]: {$in: values}};
+        const totalExisting: number = await model.countDocuments(criteria).catch(() => {
+            return -1;
         });
 
-        if (totalExisting === null || totalExisting === 0) {
-            return ctx.answer(400, `Le profile ${ctx.request.params['id']} n'existe pas`);
+        if (totalExisting !== requiredQuantity) {
+            return ctx.answer(400, errorMessage);
         } else {
             await next();
         }
     };
 
-    public static async existeIds<MODEL extends Document & { toNormalization(): DOCUMENT_TYPE }, DOCUMENT_TYPE>(
+    public static async existeValuesInKeyForUpdate<MODEL extends Document & { toNormalization(): DOCUMENT_TYPE }, DOCUMENT_TYPE>(
         ctx: ModifiedContext,
         next: Function,
         model: Model<MODEL>,
+        id: string,
+        key: string,
+        values: string[],
+        requiredQuantity: number,
         errorMessage: string
     ) {
+        const criteria: any = {[key]: {$in: values}};
+        const documents: Document[] = await model.find(criteria).catch(() => null);
 
-        const criteria: any = {_id: {$in: ctx.request.body}};
+        if (!documents || documents.filter(value => value._id.toString() !== id.toString()).length > 0) {
+            return ctx.answer(400, errorMessage);
+        } else {
+            return await next();
+        }
+    };
+
+    public static async checkRelation<MODEL extends Document & { toNormalization(): DOCUMENT_TYPE }, DOCUMENT_TYPE>(
+        ctx: ModifiedContext,
+        next: Function,
+        model: Model<MODEL>,
+        key: string,
+        values: string[],
+        errorMessage: (totalExisting: number) => string
+    ) {
+
+        const criteria: any = {[key]: {$in: values}};
         const totalExisting: number = await model.countDocuments(criteria).catch(() => {
             return null;
         });
 
-        if (totalExisting === null || totalExisting !== ctx.request.body.length) {
-            return ctx.answer(400, errorMessage);
+        if (totalExisting === null || totalExisting > 0) {
+            return ctx.answer(400, errorMessage(totalExisting));
         } else {
             await next();
         }
@@ -256,11 +295,12 @@ class ControllerHelpers {
         }
     };
 
-    public static async setBodyEndPagination<MODEL extends Document & { toNormalization(): DOCUMENT_TYPE }, DOCUMENT_TYPE>(
+    public static async dispatch<MODEL extends Document & { toNormalization(): DOCUMENT_TYPE }, DOCUMENT_TYPE>(
         ctx: ModifiedContext,
-        next: Function
+        next: Function,
+        dataName: string = 'entity'
     ) {
-        const entity = ctx.request.body.entity;
+        const entity = ctx.request.body[dataName];
         ctx.pagination = ctx.request.body.pagination;
         ctx.request.body = entity;
         await next();
@@ -273,22 +313,38 @@ class ControllerHelpers {
 
         ctx.pagination = ctx.request.body;
         await next();
-    };
+    }
 
-    public static haseRole = async (ctx: ModifiedContext, next: Function, role?: string) => {
-        if (!role) role = new Map<string, string>(ROUTEURS_ROLE).get(ctx.request.method + ctx.request.url.replace(/[a-f\d]{24}/gi, ':id'));
-        if (!role) return ctx.answer(403, "Forbidden");
+    public static haseRoleMidleWare = async (ctx: ModifiedContext, next: Function, role?: string) => {
+        const path = ctx.request.method + ctx.request.url.replace(/[a-f\d]{24}/gi, ':id');
+        if (SINGLE_AUTH_PATHS.includes(path)) return await next();
+        if (!role) {
+            const roleLog = new Map<string, [string, string]>(ROUTEURS_ROLE).get(path);
+            if (!roleLog) return ctx.answer(403, "Forbidden");
+            role = roleLog[0];
+            ctx.state.log = {action: roleLog[1], state: LogState.ERROR, userName: ctx.state.user.userName};
+        }
+
         if (ctx.state.user.profile === DefaultUserCreator.DEFAULT_PROFILE_NAME) return await next();
-        const size: number = await ProfileModel.countDocuments({
+        const size: boolean = await ProfileModel.exists({
             name: ctx.state.user.profile,
             roles: {"$in": [role]}
         }).catch(() => null);
-        if (size && size > 0) {
+        if (size) {
             return await next();
         } else {
             return ctx.answer(403, "Forbidden");
         }
-    };
+    }
+
+    public static haseRole = async (ctx: ModifiedContext, role: string): Promise<boolean> => {
+        if (ctx.state.user.profile === DefaultUserCreator.DEFAULT_PROFILE_NAME) return true;
+        const size: number = await ProfileModel.countDocuments({
+            name: ctx.state.user.profile,
+            roles: {"$in": [role]}
+        }).catch(() => null);
+        return size && size > 0;
+    }
 }
 
 export default ControllerHelpers;

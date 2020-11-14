@@ -1,7 +1,7 @@
-import ROUTER, {Joi as JOI, Router, Spec} from 'koa-joi-router';
+import ROUTER, {Handler, Joi as JOI, Router, Spec} from 'koa-joi-router';
 import HELPER from './helper';
 import USER_CONTROLLER from '../controller/user';
-import {ObjectSchema, SchemaMap} from "joi";
+import {SchemaMap} from "joi";
 import {ModifiedContext} from "index";
 import CONTROLLER_HELPERS from "../controller/controller-helpers";
 import UserModel from './../model/user';
@@ -12,48 +12,24 @@ import {RoutesPrefix} from "../constante/routes-prefix";
 
 class UserRouter {
 
-    public static readonly baseRoute: string = "/users";
-
     public static NAME_VALIDATION = JOI.string().max(HELPER.defaults.length).label("le nom").required();
     public static EMAIL_NAME_VALIDATION = JOI.string().lowercase().email().required();
     public static PASSWORD_NAME_VALIDATION = JOI.string().min(2).max(HELPER.defaults.length).label("le mot de passe").required();
     public static USERNAME_VALIDATION = JOI.string().min(2).max(HELPER.defaults.length).label("le nom d'utilisateur").required();
     public static PROFILE_VALIDATION = JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)});
-
     public static readonly userOutput: SchemaMap = {
         id: JOI.string(),
         email: JOI.string(),
         name: JOI.string(),
         userName: JOI.string(),
+        createdAt: JOI.date(),
+        active: JOI.bool().default(false),
         profile: JOI.object({
-            id: JOI.string().required(),
-            name: JOI.string().required(),
-            description: JOI.string().required(),
+            id: JOI.string().allow(''),
+            name: JOI.string().allow(''),
+            description: JOI.string().allow(''),
         })
-    };
-
-    private static readonly createBody = JOI.object({
-        name: UserRouter.NAME_VALIDATION,
-        email: UserRouter.EMAIL_NAME_VALIDATION,
-        password: UserRouter.PASSWORD_NAME_VALIDATION,
-        userName: UserRouter.USERNAME_VALIDATION,
-        profile: UserRouter.PROFILE_VALIDATION,
-    }).options({stripUnknown: true});
-
-    private static readonly updateBody = JOI.object({
-        name: UserRouter.NAME_VALIDATION,
-        profile: UserRouter.PROFILE_VALIDATION,
-    }).options({stripUnknown: true});
-
-    private static readonly paginationInput: ObjectSchema = JOI.object({
-        page: JOI.number().min(0).required(),
-        size: JOI.number().min(1).required(),
-        sort: JOI.string(),
-        direction: JOI.number().equal([1, -1]),
-        globalFilter: JOI.string(),
-        filters: JOI.object(),
-    }).options({stripUnknown: true});
-
+    }
     public static read: Spec = ({
         method: HELPER.methods.GET,
         path: ROUTER_HELPER.readPath(),
@@ -62,13 +38,21 @@ class UserRouter {
             params: JOI.object({
                 id: JOI.string().regex(HELPER.mongoObjectRegEx)
             }),
-            //output: HELPER.defaultOutput(JOI.object(UserRouter.userOutput))
+            output: HELPER.defaultOutput(JOI.object(UserRouter.userOutput))
         },
         handler: [
             HELPER.validation,
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.read(ctx, UserModel)
         ]
-    });
+    })
+    private static readonly createBody = JOI.object({
+        name: UserRouter.NAME_VALIDATION,
+        email: UserRouter.EMAIL_NAME_VALIDATION,
+        // password: UserRouter.PASSWORD_NAME_VALIDATION,
+        userName: UserRouter.USERNAME_VALIDATION,
+        active: JOI.bool().default(false),
+        profile: UserRouter.PROFILE_VALIDATION,
+    }).options({stripUnknown: true});
 
     public static create: Spec = ({
         method: HELPER.methods.POST,
@@ -77,14 +61,41 @@ class UserRouter {
             continueOnError: true,
             type: HELPER.contentType.JSON,
             body: UserRouter.createBody,
-            //output: HELPER.defaultOutput(JOI.object(UserRouter.userOutput))
+            output: HELPER.defaultOutput(JOI.object(UserRouter.userOutput))
         },
         handler: [
             HELPER.validation,
-            USER_CONTROLLER.addProfile,
+            UserRouter.createValidation(),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.create(ctx, UserModel)
         ]
-    });
+    })
+
+    private static createAndGet: Spec = ({
+        method: HELPER.methods.POST,
+        path: ROUTER_HELPER.createAndGetPath(),
+        validate: {
+            continueOnError: true,
+            type: HELPER.contentType.JSON,
+            body: JOI.object({entity: UserRouter.createBody, pagination: CONTROLLER_HELPERS.paginationInput}),
+            output: HELPER.defaultOutput(JOI.array().items(UserRouter.userOutput), true)
+        },
+        handler: [
+            HELPER.validation,
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next),
+            UserRouter.createValidation(),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.createAndNext(ctx, next, UserModel),
+            (ctx: ModifiedContext) => CONTROLLER_HELPERS.page(ctx, UserModel, PROFILE_CONTROLLER.condition(ctx)),
+        ]
+    })
+
+    private static readonly updateBody = JOI.object({
+        name: UserRouter.NAME_VALIDATION,
+        email: UserRouter.EMAIL_NAME_VALIDATION,
+        // password: UserRouter.PASSWORD_NAME_VALIDATION,
+        userName: UserRouter.USERNAME_VALIDATION,
+        active: JOI.bool().allow(null).optional(),
+        profile: UserRouter.PROFILE_VALIDATION,
+    }).options({stripUnknown: true});
 
     public static update: Spec = ({
         method: HELPER.methods.PUT,
@@ -96,31 +107,14 @@ class UserRouter {
                 id: JOI.string().regex(HELPER.mongoObjectRegEx)
             }),
             body: UserRouter.updateBody,
-            //output: HELPER.defaultOutput(JOI.object(UserRouter.userOutput))
+            output: HELPER.defaultOutput(JOI.object(UserRouter.userOutput))
         },
         handler: [
             HELPER.validation,
+            UserRouter.updateValidation(),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.update(ctx, UserModel)
         ]
-    });
-
-    private static createAndGet: Spec = ({
-        method: HELPER.methods.POST,
-        path: ROUTER_HELPER.createAndGetPath(),
-        validate: {
-            continueOnError: true,
-            type: HELPER.contentType.JSON,
-            body: JOI.object({entity: UserRouter.createBody, pagination: UserRouter.paginationInput}),
-            //output: HELPER.defaultOutput(JOI.array().items(UserRouter.userOutput), true)
-        },
-        handler: [
-            HELPER.validation,
-            USER_CONTROLLER.setProfile,
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setBodyEndPagination(ctx, next),
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.createAndNext(ctx, next, UserModel),
-            (ctx: ModifiedContext) => CONTROLLER_HELPERS.page(ctx, UserModel, PROFILE_CONTROLLER.condition(ctx)),
-        ]
-    });
+    })
 
     private static updateAndGet: Spec = ({
         method: HELPER.methods.PUT,
@@ -129,17 +123,17 @@ class UserRouter {
             continueOnError: true,
             type: HELPER.contentType.JSON,
             params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
-            body: JOI.object({entity: UserRouter.updateBody, pagination: UserRouter.paginationInput}),
-            //output: HELPER.defaultOutput(JOI.array().items(UserRouter.userOutput), true)
+            body: JOI.object({entity: UserRouter.updateBody, pagination: CONTROLLER_HELPERS.paginationInput}),
+            output: HELPER.defaultOutput(JOI.array().items(UserRouter.userOutput), true)
         },
         handler: [
             HELPER.validation,
-            USER_CONTROLLER.setProfile,
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setBodyEndPagination(ctx, next),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next),
+            UserRouter.updateValidation(),
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.updateAndNext(ctx, next, UserModel),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.page(ctx, UserModel, PROFILE_CONTROLLER.condition(ctx)),
         ]
-    });
+    })
 
     private static deleteAndGet: Spec = ({
         method: HELPER.methods.PUT,
@@ -148,17 +142,17 @@ class UserRouter {
             continueOnError: true,
             type: HELPER.contentType.JSON,
             params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
-            body: UserRouter.paginationInput,
-            //output: HELPER.defaultOutput(JOI.array().items(UserRouter.userOutput), true)
+            body: CONTROLLER_HELPERS.paginationInput,
+            output: HELPER.defaultOutput(JOI.array().items(UserRouter.userOutput), true)
         },
         handler: [
-
             HELPER.validation,
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setBodyEndPagination(ctx, next),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setPagination(ctx, next),
+            UserRouter.deleteValidation(),
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.deleteAndNext(ctx, next, UserModel),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.page(ctx, UserModel, PROFILE_CONTROLLER.condition(ctx)),
         ]
-    });
+    })
 
     private static page: Spec = ({
         method: HELPER.methods.POST,
@@ -166,15 +160,15 @@ class UserRouter {
         validate: {
             continueOnError: true,
             type: HELPER.contentType.JSON,
-            body: UserRouter.paginationInput,
-            //output: HELPER.defaultOutput(JOI.array().items(UserRouter.userOutput), true)
+            body: CONTROLLER_HELPERS.paginationInput,
+            output: HELPER.defaultOutput(JOI.array().items(UserRouter.userOutput), true)
         },
         handler: [
             HELPER.validation,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setPagination(ctx, next),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.page(ctx, UserModel, PROFILE_CONTROLLER.condition(ctx)),
         ]
-    });
+    })
 
     private static delete: Spec = ({
         method: HELPER.methods.DELETE,
@@ -182,15 +176,14 @@ class UserRouter {
         validate: {
             continueOnError: true,
             params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
-            //output: HELPER.defaultOutput(JOI.object(UserRouter.))
+            output: HELPER.defaultOutput(JOI.object(UserRouter.userOutput))
         },
         handler: [
             HELPER.validation,
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setPagination(ctx, next),
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeId(ctx, next, UserModel),
+            UserRouter.deleteValidation(),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.delete(ctx, UserModel),
         ]
-    });
+    })
 
     private static deleteAll: Spec = ({
         method: HELPER.methods.PUT,
@@ -199,46 +192,222 @@ class UserRouter {
             continueOnError: true,
             type: HELPER.contentType.JSON,
             body: JOI.array().items(JOI.string().regex(HELPER.mongoObjectRegEx)).min(1),
-            //output: HELPER.defaultOutput(JOI.empty())
+            output: HELPER.defaultOutput(JOI.array().items(UserRouter.userOutput), true)
         },
         handler: [
             HELPER.validation,
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeIds(ctx, next, UserModel, 'user not found'),
+            UserRouter.deleteAllValidation(),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.deleteAll(ctx, UserModel),
         ]
-    });
+    })
+
+    private static deleteAllAndGet: Spec = ({
+        method: HELPER.methods.PUT,
+        path: ROUTER_HELPER.deleteAllAndGetPath(),
+        validate: {
+            continueOnError: true,
+            type: HELPER.contentType.JSON,
+            body: JOI.object({
+                ids: JOI.array().items(JOI.string().regex(HELPER.mongoObjectRegEx)).min(1),
+                pagination: CONTROLLER_HELPERS.paginationInput,
+            }),
+            output: HELPER.defaultOutput(JOI.array().items(UserRouter.userOutput), true)
+        },
+        handler: [
+            HELPER.validation,
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next, 'ids'),
+            UserRouter.deleteAllValidation(),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.deleteAll(ctx, UserModel, next),
+            (ctx: ModifiedContext) => CONTROLLER_HELPERS.page(ctx, UserModel, PROFILE_CONTROLLER.condition(ctx)),
+        ]
+    })
+
 
     private static all: Spec = ({
         method: HELPER.methods.GET,
         path: ROUTER_HELPER.allPath(),
         validate: {
             continueOnError: true,
-           // output: HELPER.defaultOutput(JOI.array().items(UserRouter.profileOutput))
+            output: HELPER.defaultOutput(JOI.array().items(UserRouter.userOutput))
         },
         handler: [
             HELPER.validation,
-            //(ctx: ModifiedContext, next: Function)=> HELPER.validation2(ctx, next, 'role not found') ,
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.all(ctx, UserModel),
         ]
     });
 
+    public static activateAccount: Spec = ({
+        method: HELPER.methods.PUT,
+        path: '/activate/:id',
+        validate: {
+            continueOnError: true,
+            type: HELPER.contentType.JSON,
+            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
+            body: CONTROLLER_HELPERS.paginationInput,
+            output: HELPER.defaultOutput(JOI.array().items(UserRouter.userOutput), true)
+        },
+        handler: [
+            HELPER.validation,
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setPagination(ctx, next),
+            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.ckeckExistingAndNotAdmin(ctx, next, "modifer"),
+            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.activateOrDesableAccount(ctx, next, [ctx.request.params['id']],true),
+            (ctx: ModifiedContext) => CONTROLLER_HELPERS.page(ctx, UserModel, PROFILE_CONTROLLER.condition(ctx)),
+
+        ]
+    })
+
+    public static disableAccount: Spec = ({
+        method: HELPER.methods.PUT,
+        path: '/disable/:id',
+        validate: {
+            continueOnError: true,
+            type: HELPER.contentType.JSON,
+            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
+            body: CONTROLLER_HELPERS.paginationInput,
+            output: HELPER.defaultOutput(JOI.array().items(UserRouter.userOutput), true)
+        },
+        handler: [
+            HELPER.validation,
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setPagination(ctx, next),
+            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.ckeckExistingAndNotAdmin(ctx, next, "modifer"),
+            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.activateOrDesableAccount(ctx, next, [ctx.request.params['id']],false),
+            (ctx: ModifiedContext) => CONTROLLER_HELPERS.page(ctx, UserModel, PROFILE_CONTROLLER.condition(ctx)),
+        ]
+    })
+
+    public static activateAllAccount: Spec = ({
+        method: HELPER.methods.PUT,
+        path: '/activate-all',
+        validate: {
+            continueOnError: true,
+            type: HELPER.contentType.JSON,
+            body: JOI.object({
+                ids: JOI.array().items(JOI.string().regex(HELPER.mongoObjectRegEx)).min(1),
+                pagination: CONTROLLER_HELPERS.paginationInput,
+            }),
+            output: HELPER.defaultOutput(JOI.array().items(UserRouter.userOutput), true)
+        },
+        handler: [
+            HELPER.validation,
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next, 'ids'),
+            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.ckeckAdminNotInList(ctx, next, 'modifier'),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, UserModel, '_id', ctx.request.body, ctx.request.body.length, `Certaines utilisateur n'existent pas`),
+            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.activateOrDesableAccount(ctx, next, ctx.request.body,true),
+            (ctx: ModifiedContext) => CONTROLLER_HELPERS.page(ctx, UserModel, PROFILE_CONTROLLER.condition(ctx)),
+        ]
+    })
+
+    public static disableAllAccount: Spec = ({
+        method: HELPER.methods.PUT,
+        path: '/disable-all',
+        validate: {
+            continueOnError: true,
+            type: HELPER.contentType.JSON,
+            body: JOI.object({
+                ids: JOI.array().items(JOI.string().regex(HELPER.mongoObjectRegEx)).min(1),
+                pagination: CONTROLLER_HELPERS.paginationInput,
+            }),
+            output: HELPER.defaultOutput(JOI.array().items(UserRouter.userOutput), true)
+        },
+        handler: [
+            HELPER.validation,
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next, 'ids'),
+            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.ckeckAdminNotInList(ctx, next, 'modifier'),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, UserModel, '_id', ctx.request.body, ctx.request.body.length, `Certaines utilisateur n'existent pas`),
+            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.activateOrDesableAccount(ctx, next, ctx.request.body,false),
+            (ctx: ModifiedContext) => CONTROLLER_HELPERS.page(ctx, UserModel, PROFILE_CONTROLLER.condition(ctx)),
+        ]
+    })
+
+    private static currentUserRoles: Spec = ({
+        method: HELPER.methods.GET,
+        path: `/current-user-roles`,
+        validate: {
+            continueOnError: true,
+            output: HELPER.defaultOutput(JOI.array().items(JOI.string()).allow([]))
+        },
+        handler: [
+            HELPER.validation,
+            (ctx: ModifiedContext) => USER_CONTROLLER.currentUserRoles(ctx),
+        ]
+    })
+
+    public static resetPassword: Spec = ({
+        method: HELPER.methods.GET,
+        path: '/reset-password/:id',
+        validate: {
+            continueOnError: true,
+            type: HELPER.contentType.JSON,
+            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
+            output: HELPER.defaultOutput(JOI.empty())
+        },
+        handler: [
+            HELPER.validation,
+            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.ckeckExistingAndNotAdmin(ctx, next, "modifer"),
+            USER_CONTROLLER.resetPassword,
+        ]
+    })
+
     public static routes(): Router {
-        const router  = ROUTER();
+        const router = ROUTER();
         router.prefix(RoutesPrefix.user);
         router.route([
             UserRouter.create,
-            UserRouter.read,
-            UserRouter.update,
-            UserRouter.delete,
-            UserRouter.page,
-            UserRouter.all,
             UserRouter.createAndGet,
+            UserRouter.update,
             UserRouter.updateAndGet,
+            UserRouter.delete,
             UserRouter.deleteAndGet,
             UserRouter.deleteAll,
+            UserRouter.deleteAllAndGet,
+            UserRouter.read,
+            UserRouter.all,
+            UserRouter.page,
+            UserRouter.activateAccount,
+            UserRouter.disableAccount,
+            UserRouter.disableAllAccount,
+            UserRouter.activateAllAccount,
+            UserRouter.currentUserRoles,
+            UserRouter.resetPassword,
         ]);
         return router;
     }
+
+    private static createValidation(): Handler[] {
+        return [
+            USER_CONTROLLER.checkCreateActiveRole,
+            USER_CONTROLLER.checkProfile,
+            USER_CONTROLLER.adminCheck,
+            USER_CONTROLLER.beforeCreate,
+            USER_CONTROLLER.setPassword,
+        ];
+    }
+
+    private static updateValidation(): Handler[] {
+        return [
+            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.ckeckExistingAndNotAdmin(ctx, next, "modifier"),
+            USER_CONTROLLER.checkProfile,
+            USER_CONTROLLER.adminCheck,
+            USER_CONTROLLER.checkUpdateActiveRole,
+            USER_CONTROLLER.beforeUpdate,
+        ];
+    }
+
+    private static deleteValidation(): Handler[] {
+        return [
+            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.ckeckExistingAndNotAdmin(ctx, next, "modifer"),
+        ];
+    }
+
+    private static deleteAllValidation(): Handler[] {
+        return [
+            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.ckeckAdminNotInList(ctx, next, 'supprimer'),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, UserModel, '_id', ctx.request.body, ctx.request.body.length, `Certaines utilisateur n'existent pas`),
+        ];
+    }
+
+
+
 }
 
 export default UserRouter;

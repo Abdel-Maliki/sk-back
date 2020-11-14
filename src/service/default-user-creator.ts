@@ -1,5 +1,4 @@
 import UserModel, {UserType} from './../model/user';
-import ProfileModel, {ProfileType} from "../model/profile";
 import {ClientSession, startSession} from "mongoose";
 
 /**
@@ -8,15 +7,7 @@ import {ClientSession, startSession} from "mongoose";
  */
 
 export class DefaultUserCreator {
-
     public static readonly DEFAULT_PROFILE_NAME = "admin";
-
-    private static readonly defaultProfile: ProfileType = {
-        createdBy: "DEFAULT",
-        description: DefaultUserCreator.DEFAULT_PROFILE_NAME,
-        roles: [],
-        name:  DefaultUserCreator.DEFAULT_PROFILE_NAME,
-    }
 
     private static readonly defaultUser: UserType & { password: string } = {
         email: "malikiamadou00@gmail.com",
@@ -24,6 +15,7 @@ export class DefaultUserCreator {
         name: "admin",
         userName: "admin",
         password: "admin",
+        active: true,
         profile: null,
         updatedAt: "",
     };
@@ -33,27 +25,15 @@ export class DefaultUserCreator {
         session.startTransaction();
 
         const result: number = await UserModel.countDocuments().exec().catch(() => null);
-        if (result && result > 0) return;
+        if (result && result > 0) return ;
+
         const user: UserType = DefaultUserCreator.defaultUser;
-        user.profile = await DefaultUserCreator.createDefaultProfile(session).catch(async () => DefaultUserCreator.exit(session));
-        delete user.profile.roles;
         UserModel.create(user)
             .then(async () => {
                 await session.commitTransaction();
                 console.log("Default user creted!!!");
             })
-            .catch(async () => DefaultUserCreator.exit(session));
-    }
-
-    public static async createDefaultProfile(session: ClientSession): Promise<ProfileType> {
-        await ProfileModel.deleteMany({}).session(session).exec().catch(() => null);
-        return new Promise<ProfileType>((resolve, reject) => {
-            ProfileModel.create([DefaultUserCreator.defaultProfile], {session: session})
-                .then(document => resolve(document[0].toNormalization()))
-                .catch(reason => {
-                    reject(reason);
-                });
-        });
+            .catch(() => DefaultUserCreator.exit(session));
     }
 
     private static async exit(session: ClientSession): Promise<any> {

@@ -3,11 +3,12 @@ import HELPER from './helper';
 import PROFILE_CONTROLLER from '../controller/profile-controller';
 import {ObjectSchema, SchemaMap} from "joi";
 import CONTROLLER_HELPERS from "../controller/controller-helpers";
-import {JwtFunctionResponse, ModifiedContext} from "index";
+import {ModifiedContext} from "index";
 import ProfileModel, {ProfileDocument, ProfileType} from './../model/profile';
 import {DefaultUserCreator} from "../service/default-user-creator";
 import ROUTER_HELPER from "./router-helper";
 import {RoutesPrefix} from "../constante/routes-prefix";
+import UserModel from './../model/user';
 
 
 class ProfileRouter {
@@ -15,8 +16,8 @@ class ProfileRouter {
     static readonly errorMessage = `Certaines profiles n'existent pas`;
 
 
-    public static readonly NAME_VALIDATION = JOI.string().trim().max(HELPER.defaults.length).label("le nom du profile").required();
-    public static readonly DESCRIPTION_VALIDATION = JOI.string().trim().max(HELPER.defaults.length).label("la description du profile");
+    public static readonly NAME_VALIDATION = JOI.string().trim().min(3).max(HELPER.defaults.length).label("le nom du profile").required();
+    public static readonly DESCRIPTION_VALIDATION = JOI.string().trim().allow('', null).max(HELPER.defaults.length).label("la description du profile").optional();
 
 
     private static readonly profileInput: ObjectSchema = JOI.object({
@@ -24,28 +25,16 @@ class ProfileRouter {
         description: ProfileRouter.DESCRIPTION_VALIDATION,
     }).options({stripUnknown: true});
 
-    private static readonly createProfileInput: ObjectSchema = JOI.object({
+    private static readonly createInput: ObjectSchema = JOI.object({
         name: ProfileRouter.NAME_VALIDATION.not(DefaultUserCreator.DEFAULT_PROFILE_NAME),
         description: ProfileRouter.DESCRIPTION_VALIDATION,
     }).options({stripUnknown: true});
 
-
-    private static readonly paginationInput: ObjectSchema = JOI.object({
-        page: JOI.number().min(0).required(),
-        size: JOI.number().min(1).required(),
-        sort: JOI.string(),
-        direction: JOI.number().equal([1, -1]),
-        globalFilter: JOI.string(),
-        filters: JOI.object(),
-    }).options({stripUnknown: true});
-
     private static readonly profileOutput: SchemaMap = {
-        id: JOI.string(),
-        name: JOI.string(),
-        description: JOI.string(),
+        id: JOI.string().regex(HELPER.mongoObjectRegEx).required(),
+        name: JOI.string().required(),
+        description: JOI.string().allow('', null).optional(),
         createdAt: JOI.date(),
-        updatedAt: JOI.date(),
-        createdBy: JOI.string(),
     };
 
     private static create: Spec = ({
@@ -54,7 +43,7 @@ class ProfileRouter {
         validate: {
             continueOnError: true,
             type: HELPER.contentType.JSON,
-            body: ProfileRouter.createProfileInput,
+            body: ProfileRouter.createInput,
             output: HELPER.defaultOutput(JOI.object(ProfileRouter.profileOutput))
         },
         handler: [
@@ -107,6 +96,8 @@ class ProfileRouter {
         handler: [
             HELPER.validation,
             (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.ckeckExistingAndNotAdmin(ctx, next, "supprimer"),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.checkRelation(ctx, next, UserModel, 'profile.id',
+                [ctx.request.params['id']], t => `ce profile est associé à ${t} utilisateur${t > 1 ? 's' : ''}`),
             PROFILE_CONTROLLER.beforeDelete,
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.delete(ctx, ProfileModel),
         ]
@@ -136,8 +127,36 @@ class ProfileRouter {
         },
         handler: [
             HELPER.validation,
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeIds(ctx, next, ProfileModel, ProfileRouter.errorMessage),
+            (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.ckeckAdminNotInList(ctx, next),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, ProfileModel, '_id', ctx.request.body, ctx.request.body.length, ProfileRouter.errorMessage),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.checkRelation(ctx, next, UserModel, 'profile.id',
+                ctx.request.body, t => `ces profiles sont associé à ${t} utilisateur${t > 1 ? 's' : ''}`),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.deleteAll(ctx, ProfileModel),
+        ]
+    });
+
+
+    private static deleteAllAndGet: Spec = ({
+        method: HELPER.methods.PUT,
+        path: ROUTER_HELPER.deleteAllAndGetPath(),
+        validate: {
+            continueOnError: true,
+            type: HELPER.contentType.JSON,
+            body: JOI.object({
+                ids: JOI.array().items(JOI.string().regex(HELPER.mongoObjectRegEx)).min(1),
+                pagination: CONTROLLER_HELPERS.paginationInput
+            }),
+            output: HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
+        },
+        handler: [
+            HELPER.validation,
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next, 'ids'),
+            (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.ckeckAdminNotInList(ctx, next),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, ProfileModel, '_id', ctx.request.body, ctx.request.body.length, ProfileRouter.errorMessage),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.checkRelation(ctx, next, UserModel, 'profile.id',
+                ctx.request.body, t => `ces profiles sont associé à ${t} utilisateur${t > 1 ? 's' : ''}`),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.deleteAll(ctx, ProfileModel, next),
+            (ctx: ModifiedContext) => CONTROLLER_HELPERS.page<ProfileDocument, ProfileType>(ctx, ProfileModel, PROFILE_CONTROLLER.condition(ctx)),
         ]
     });
 
@@ -147,12 +166,12 @@ class ProfileRouter {
         validate: {
             continueOnError: true,
             type: HELPER.contentType.JSON,
-            body: JOI.object({entity: ProfileRouter.createProfileInput, pagination: ProfileRouter.paginationInput}),
-            //output: HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
+            body: JOI.object({entity: ProfileRouter.createInput, pagination: CONTROLLER_HELPERS.paginationInput}),
+            output: HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
         },
         handler: [
             HELPER.validation,
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setBodyEndPagination(ctx, next),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next),
             PROFILE_CONTROLLER.beforeCreate,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.createAndNext(ctx, next, ProfileModel),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.page<ProfileDocument, ProfileType>(ctx, ProfileModel, PROFILE_CONTROLLER.condition(ctx)),
@@ -166,12 +185,12 @@ class ProfileRouter {
             continueOnError: true,
             type: HELPER.contentType.JSON,
             params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
-            body: JOI.object({entity: ProfileRouter.profileInput, pagination: ProfileRouter.paginationInput}),
+            body: JOI.object({entity: ProfileRouter.profileInput, pagination: CONTROLLER_HELPERS.paginationInput}),
             output: HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
         },
         handler: [
             HELPER.validation,
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setBodyEndPagination(ctx, next),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next),
             (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.checkNameAndDescription(ctx, next),
             (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.ckeckExistingAndNotAdmin(ctx, next, "modifier"),
             (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.update(ctx, next),
@@ -186,12 +205,12 @@ class ProfileRouter {
             continueOnError: true,
             type: HELPER.contentType.JSON,
             params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
-            body: ProfileRouter.paginationInput,
+            body: CONTROLLER_HELPERS.paginationInput,
             output: HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
         },
         handler: [
             HELPER.validation,
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setBodyEndPagination(ctx, next),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setPagination(ctx, next),
             (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.ckeckExistingAndNotAdmin(ctx, next, "supprimer"),
             PROFILE_CONTROLLER.beforeDelete,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.deleteAndNext(ctx, next, ProfileModel),
@@ -206,8 +225,8 @@ class ProfileRouter {
         validate: {
             continueOnError: true,
             type: HELPER.contentType.JSON,
-            body: ProfileRouter.paginationInput,
-            //output: HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
+            body: CONTROLLER_HELPERS.paginationInput,
+            output: HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
         },
         handler: [
             HELPER.validation,
@@ -222,8 +241,8 @@ class ProfileRouter {
         validate: {
             continueOnError: true,
             type: HELPER.contentType.JSON,
-            //body: JOI.object({global: JOI.string().optional()}),
-            //output: HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
+            body: JOI.object({global: JOI.string().optional()}),
+            output: HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput))
         },
 
         handler: [
@@ -232,7 +251,7 @@ class ProfileRouter {
         ]
     });
 
-    private static roles: Spec = ({
+    private static getRoles: Spec = ({
         method: HELPER.methods.GET,
         path: `/roles/:id`,
         validate: {
@@ -260,7 +279,8 @@ class ProfileRouter {
         handler: [
             HELPER.validation,
             (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.validateRoles(ctx, next),
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeId(ctx, next, ProfileModel),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, ProfileModel,
+                '_id', [ctx.request.params['id']], 1 ,`Le profile ${ctx.request.params['id']} n'existe pas`),
             (ctx: ModifiedContext) => PROFILE_CONTROLLER.setRoles(ctx),
         ]
     });
@@ -276,11 +296,12 @@ class ProfileRouter {
             ProfileRouter.page,
             ProfileRouter.all,
             ProfileRouter.deleteAll,
+            ProfileRouter.deleteAllAndGet,
             ProfileRouter.createAndGet,
             ProfileRouter.updateAndGet,
             ProfileRouter.deleteAndGet,
             ProfileRouter.search,
-            ProfileRouter.roles,
+            ProfileRouter.getRoles,
             ProfileRouter.setRoles,
         ]);
         return router;

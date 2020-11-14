@@ -7,7 +7,7 @@ import HEALTH_ROUTES from './router/health';
 import {JwtFunctionResponse} from "index";
 
 class Router {
-    private static routers: ROUTER.Router[] = [
+    private static routes: ROUTER.Router[] = [
         PROFILE_ROUTES.routes(),
         USER_ROUTES.routes(),
     ]
@@ -18,7 +18,7 @@ class Router {
 
         privateRouter.use(jwtMiddleware.authenticate);
 
-        Router.routers.forEach(router => privateRouter.use(router.middleware()))
+        Router.routes.forEach(router => privateRouter.use(router.middleware()))
 
         publicRouter.route(LOGIN_ROUTES.create);
         publicRouter.route(HEALTH_ROUTES.read);
