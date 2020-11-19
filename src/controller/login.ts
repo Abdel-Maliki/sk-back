@@ -18,6 +18,7 @@ class Login {
         const user: UserDocument | null = await UserModel.findOne({$or: [{email: email}, {userName: email}]});
 
         if (user) {
+            ctx.state.log.userName = user.userName;
             const isMatched = await user.comparePassword(password).catch(err => null);
             if (isMatched === true) {
                 const {id} = <UserType>user.toNormalization();

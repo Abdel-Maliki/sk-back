@@ -317,12 +317,20 @@ class ControllerHelpers {
 
     public static haseRoleMidleWare = async (ctx: ModifiedContext, next: Function, role?: string) => {
         const path = ctx.request.method + ctx.request.url.replace(/[a-f\d]{24}/gi, ':id');
-        if (SINGLE_AUTH_PATHS.includes(path)) return await next();
+        const singleAuth: [string] = new Map<string, [string]>(SINGLE_AUTH_PATHS).get(path);
+
+        if (singleAuth && singleAuth.length > 0) {
+            ctx.state.log.action = singleAuth[0];
+            ctx.state.log.userName = ctx.state.user.userName;
+            return await next();
+        }
+
         if (!role) {
             const roleLog = new Map<string, [string, string]>(ROUTEURS_ROLE).get(path);
             if (!roleLog) return ctx.answer(403, "Forbidden");
             role = roleLog[0];
-            ctx.state.log = {action: roleLog[1], state: LogState.ERROR, userName: ctx.state.user.userName};
+            ctx.state.log.action = roleLog[1];
+            ctx.state.log.userName = ctx.state.user.userName;
         }
 
         if (ctx.state.user.profile.name === DefaultUserCreator.DEFAULT_PROFILE_NAME) return await next();

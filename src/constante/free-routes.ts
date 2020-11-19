@@ -7,7 +7,7 @@ import {RoutesPrefix} from "./routes-prefix";
  */
 
 const singleAuthPaths: [string, [string]][] = [
-    [Helper.getPattern(RoutesPrefix.user, `/current-user-data`), ["Récuperation des information de l'utilisateur courrent"]],
+    [Helper.postPattern("", `/login`), ["Login"]],
 ]
 
 export default singleAuthPaths;

@@ -5,6 +5,9 @@ import {Pagination} from "../common/pagination";
 import UserModel, {UserDocument} from './../model/user';
 import ControllerHelpers from "../controller/controller-helpers";
 import {DefaultUserCreator} from "../service/default-user-creator";
+import {LogState} from "../model/log";
+import LoModel from './../model/log';
+import FREE_ROUTES from "../constante/free-routes";
 
 
 /**
@@ -61,11 +64,13 @@ class Middleware {
          * @param pagination - Le nombre total d'element dans la collection
          */
         ctx.answer = (status: number, body: object | string, pagination?: Pagination) => {
+            ctx.state.log.code = status;
             ctx.status = status;
             let error: boolean = false;
 
             if (status >= 299 || status < 200) {
                 error = true;
+                if (typeof body === "string") ctx.state.log.errorMessage = body;
             }
 
             if (error === true) {
@@ -74,13 +79,16 @@ class Middleware {
                     error: (Array.isArray(body)) ? body : {message: body}
                 };
             } else {
-                // ctx.state.log.state = LogState.SUCCES;
+                ctx.state.log.state = LogState.SUCCES;
                 ctx.body = {
                     code: ctx.status,
                     data: (typeof body === 'object') ? body : (Array.isArray(body)) ? body : {message: body}
                 };
                 if (pagination) ctx.body.pagination = pagination;
             }
+
+            ctx.state.log.time = new Date().getTime() - ctx.state.log.time;
+            LoModel.create(ctx.state.log).then();
 
             return ctx;
         };
@@ -95,6 +103,48 @@ class Middleware {
             console.error(err.stack || err);
             ctx.answer(500, Responses.INTERNAL_ERROR);
         }
+    };
+
+    public static initLog: KoaMiddleware = async (ctx: ModifiedContext, next: Function) => {
+        ctx.state.log = {
+            state: LogState.ERROR,
+            userName: ctx.state.user.userName,
+            action: "NOT FOUND",
+            ipAddress: ctx.request.ip,
+            url: ctx.request.url,
+            method: ctx.request.method,
+            host: ctx.header.host,
+            userAgent: ctx.header['user-agent'],
+            time: new Date().getTime(),
+            code: 404
+        };
+        await next();
+    };
+
+    public static anonymous: KoaMiddleware = async (ctx: ModifiedContext, next: Function) => {
+        ctx.state.user = {
+            active: false,
+            email: undefined,
+            name: 'anonymous',
+            profile: {
+                name: 'anonymous',
+                description: 'anonymous',
+                roles: []
+            },
+            userName: 'anonymous'
+        }
+        await next();
+    };
+
+    public static freeRouteAction: KoaMiddleware = async (ctx: ModifiedContext, next: Function) => {
+        const path = ctx.request.method + ctx.request.url.replace(/[a-f\d]{24}/gi, ':id');
+        const result: [string] = new Map<string, [string]>(FREE_ROUTES).get(path);
+        if (result && result.length > 0) {
+            ctx.state.log.action = result[0];
+            ctx.state.log.userName = ctx.state.user.userName;
+            return await next();
+        }
+        await next();
     };
 
     private static resolveAuthorizationHeader: AuthorizationFunction = (ctx: ModifiedContext) => {

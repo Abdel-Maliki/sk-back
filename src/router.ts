@@ -5,6 +5,7 @@ import PROFILE_ROUTES from './router/profile-router';
 import LOGIN_ROUTES from './router/login';
 import HEALTH_ROUTES from './router/health';
 import {JwtFunctionResponse} from "index";
+import Middleware from "./middleware";
 
 class Router {
     private static routes: ROUTER.Router[] = [
@@ -17,6 +18,7 @@ class Router {
         const publicRouter = ROUTER();
 
         privateRouter.use(jwtMiddleware.authenticate);
+        publicRouter.use(Middleware.freeRouteAction);
 
         Router.routes.forEach(router => privateRouter.use(router.middleware()))
 
