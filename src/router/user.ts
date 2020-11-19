@@ -319,16 +319,19 @@ class UserRouter {
         ]
     })
 
-    private static currentUserRoles: Spec = ({
+    private static currentUserData: Spec = ({
         method: HELPER.methods.GET,
-        path: `/current-user-roles`,
+        path: `/current-user-data`,
         validate: {
             continueOnError: true,
-            output: HELPER.defaultOutput(JOI.array().items(JOI.string()).allow([]))
+            output: HELPER.defaultOutput(JOI.object({
+                user: UserRouter.userOutput,
+                roles: JOI.array().items(JOI.string()).allow([]),
+            }))
         },
         handler: [
             HELPER.validation,
-            (ctx: ModifiedContext) => USER_CONTROLLER.currentUserRoles(ctx),
+            (ctx: ModifiedContext) => USER_CONTROLLER.currentUserData(ctx),
         ]
     })
 
@@ -367,7 +370,7 @@ class UserRouter {
             UserRouter.disableAccount,
             UserRouter.disableAllAccount,
             UserRouter.activateAllAccount,
-            UserRouter.currentUserRoles,
+            UserRouter.currentUserData,
             UserRouter.resetPassword,
         ]);
         return router;

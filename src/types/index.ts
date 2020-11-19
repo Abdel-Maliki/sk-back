@@ -2,6 +2,7 @@ import { Middleware as KoaMiddleware, Context} from 'koa';
 import JWT from './../lib/jwt';
 import {Pagination} from "../common/pagination";
 import {LogType} from "../model/log";
+import {UserType} from "../model/user";
 
 /**
  * @remarks
@@ -27,7 +28,7 @@ type ConfigJwtType       = { secret: string };
 */
 type JwtFunctionResponse = { middleware: KoaMiddleware, authenticate: KoaMiddleware };
 
-type UserStateType       = { id: string , profile: string, userName: string};
+type UserStateType       = UserType;
 
 type MessageError = {
     message: string,

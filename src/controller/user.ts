@@ -170,13 +170,13 @@ class UserController {
 
     };
 
-    public static currentUserRoles = async (ctx: ModifiedContext) => {
-        if (ctx.state.user.profile === DefaultUserCreator.DEFAULT_PROFILE_NAME) {
-            return ctx.answer(200, Object.values(Roles));
+    public static currentUserData = async (ctx: ModifiedContext) => {
+        if (ctx.state.user.profile.name === DefaultUserCreator.DEFAULT_PROFILE_NAME) {
+            return ctx.answer(200, {user: ctx.state.user, roles: Object.values(Roles)});
         } else {
             const profile: ProfileType = await ProfileModel
-                .findOne({name: ctx.state.user.profile}, {roles: 1, _id: 0}).exec().catch(() => null);
-            return ctx.answer(200, profile && profile.roles ? profile.roles : []);
+                .findOne({name: ctx.state.user.profile.name}, {roles: 1, _id: 0}).exec().catch(() => null);
+            return ctx.answer(200,{user: ctx.state.user, roles: profile && profile.roles ? profile.roles : []});
         }
 
     }

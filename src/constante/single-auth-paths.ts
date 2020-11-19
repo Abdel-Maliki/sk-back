@@ -7,7 +7,7 @@ import {RoutesPrefix} from "./routes-prefix";
  */
 
 const singleAuthPaths: string[] = [
-    Helper.getPattern(RoutesPrefix.user, `/current-user-roles`),
+    Helper.getPattern(RoutesPrefix.user, `/current-user-data`),
 ]
 
 export default singleAuthPaths;

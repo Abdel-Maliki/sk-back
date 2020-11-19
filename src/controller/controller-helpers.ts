@@ -325,9 +325,9 @@ class ControllerHelpers {
             ctx.state.log = {action: roleLog[1], state: LogState.ERROR, userName: ctx.state.user.userName};
         }
 
-        if (ctx.state.user.profile === DefaultUserCreator.DEFAULT_PROFILE_NAME) return await next();
+        if (ctx.state.user.profile.name === DefaultUserCreator.DEFAULT_PROFILE_NAME) return await next();
         const size: boolean = await ProfileModel.exists({
-            name: ctx.state.user.profile,
+            name: ctx.state.user.profile.name,
             roles: {"$in": [role]}
         }).catch(() => null);
         if (size) {
@@ -338,9 +338,9 @@ class ControllerHelpers {
     }
 
     public static haseRole = async (ctx: ModifiedContext, role: string): Promise<boolean> => {
-        if (ctx.state.user.profile === DefaultUserCreator.DEFAULT_PROFILE_NAME) return true;
+        if (ctx.state.user.profile.name === DefaultUserCreator.DEFAULT_PROFILE_NAME) return true;
         const size: number = await ProfileModel.countDocuments({
-            name: ctx.state.user.profile,
+            name: ctx.state.user.profile.name,
             roles: {"$in": [role]}
         }).catch(() => null);
         return size && size > 0;

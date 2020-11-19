@@ -12,20 +12,12 @@ class LoginRouter {
       continueOnError: true,
       type: HELPER.contentType.JSON,
       body: JOI.object({
-        email: JOI.string().lowercase().email().required(),
+        email: JOI.string().required(),
         password: JOI.string().max(HELPER.defaults.length).required()
       }).options({stripUnknown: true}),
-      /*output: Object.assign({}, HELPER.errorResponse(401), HELPER.validationErrorResponse(), {
-        200: {
-          body: JOI.object({
-            code: 200,
-            data: JOI.object({
-              user: UserRouter.userOutput,
-              token: JOI.string()
-            })
-          }).options({stripUnknown: true})
-        }
-      })*/
+      output: HELPER.defaultOutput(JOI.object({
+        token: JOI.string()
+      }), false)
     },
     handler: [HELPER.validation, LOGIN_CONTROLLER.create]
   });
