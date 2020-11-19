@@ -6,12 +6,22 @@ import {EntityBase} from "./entity-base";
 type comparePasswordFunction = (candidatePassword: string) => Promise<boolean>;
 type toNormalizationFunction = () => UserType;
 
+export enum UserState {
+  ACTIVE = 'ACTIVE',
+  DESACTIVE = 'DESACTIVE',
+  BLOQUE = 'BLOQUE',
+}
+
 export type UserDocument = MONGOOSE.Document & EntityBase & {
   email: string,
   name: string,
   password: string,
   userName: string,
-  active: boolean,
+  status: UserState,
+  activatedDate: Date,
+  deactivatedDate: Date,
+  testAuthNumber: number;
+  blockedDate: Date,
   profile: ProfileType,
   comparePassword: comparePasswordFunction,
   toNormalization: toNormalizationFunction
@@ -22,14 +32,22 @@ export type UserType = EntityBase & {
   name: string | null,
   userName: string| null,
   profile: ProfileType| null,
-  active: boolean,
+  status: UserState | null,
+  activatedDate: Date | null;
+  deactivatedDate?: Date | null;
+  blockedDate?: Date | null;
+  testAuthNumber?: number | null;
 };
 
 const userSchema = new MONGOOSE.Schema({
   email: { type: String, unique: true },
   userName: { type: String, unique: true },
   name: { type: String, default: '' },
-  active: { type: Boolean, default: false },
+  testAuthNumber: { type: Number, default: 0 },
+  status: { type: String, default: UserState.DESACTIVE },
+  activatedDate: { type: Date },
+  deactivatedDate: { type: Date },
+  blockedDate: { type: Date },
   password: String,
   profile:  {
     id: { type: String, default: ''},
@@ -78,10 +96,14 @@ const toNormalization: toNormalizationFunction = function () {
     email: _userObject.email,
     profile: _userObject.profile,
     userName: _userObject.userName,
-    active: _userObject.active,
     createdAt: _userObject.createdAt,
     updatedAt: _userObject.updatedAt,
     createdBy: _userObject.createdBy,
+    activatedDate: _userObject.activatedDate,
+    deactivatedDate: _userObject.deactivatedDate,
+    blockedDate: _userObject.blockedDate,
+    status: _userObject.status,
+    testAuthNumber: _userObject.testAuthNumber,
   };
 
   return UserObject;

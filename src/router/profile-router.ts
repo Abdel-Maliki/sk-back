@@ -273,7 +273,7 @@ class ProfileRouter {
             continueOnError: true,
             type: HELPER.contentType.JSON,
             params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
-            body: JOI.array().unique().items(JOI.string().required()).label("roles "),
+            body: JOI.array().unique().allow([]).items(JOI.string()).label("roles "),
             output: HELPER.defaultOutput(JOI.array().empty())
         },
         handler: [

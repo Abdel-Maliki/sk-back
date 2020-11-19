@@ -1,4 +1,4 @@
-import UserModel, {UserType} from './../model/user';
+import UserModel, {UserState, UserType} from './../model/user';
 import {ClientSession, startSession} from "mongoose";
 
 /**
@@ -10,14 +10,15 @@ export class DefaultUserCreator {
     public static readonly DEFAULT_PROFILE_NAME = "admin";
 
     private static readonly defaultUser: UserType & { password: string } = {
+        activatedDate: new Date(),
+        status: UserState.ACTIVE,
         email: "malikiamadou00@gmail.com",
         createdBy: "DEFAULT",
         name: "admin",
         userName: "admin",
         password: "admin",
-        active: true,
         profile: null,
-        updatedAt: "",
+        updatedAt: ""
     };
 
     public static async createDefaultUser(): Promise<void> {
@@ -33,7 +34,7 @@ export class DefaultUserCreator {
                 await session.commitTransaction();
                 console.log("Default user creted!!!");
             })
-            .catch(() => DefaultUserCreator.exit(session));
+            .catch((error) => DefaultUserCreator.exit(session));
     }
 
     private static async exit(session: ClientSession): Promise<any> {

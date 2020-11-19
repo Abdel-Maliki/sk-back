@@ -2,7 +2,7 @@ import {Middleware as KoaMiddleware} from 'koa';
 import {JwtFunctionResponse, ModifiedContext, Responses} from './../types/';
 import JWT from './../lib/jwt';
 import {Pagination} from "../common/pagination";
-import UserModel, {UserDocument} from './../model/user';
+import UserModel, {UserDocument, UserState} from './../model/user';
 import ControllerHelpers from "../controller/controller-helpers";
 import {DefaultUserCreator} from "../service/default-user-creator";
 import {LogState} from "../model/log";
@@ -33,7 +33,7 @@ class Middleware {
                     const decodedToken: { id: string } | null = await Jwt.verify(token, ctx.header['user-agent']).catch(() => null);
                     if (decodedToken && decodedToken.id) {
                         const user: UserDocument = await UserModel.findById(decodedToken.id).exec().catch(() => null);
-                        if (user && decodedToken.id && user._id.toString() === decodedToken.id.toString() && user.active) {
+                        if (user && decodedToken.id && user._id.toString() === decodedToken.id.toString() && user.status === UserState.ACTIVE) {
                             ctx.state.user = user.toNormalization();
                             if (ctx.state.user.userName === DefaultUserCreator.DEFAULT_PROFILE_NAME)
                                 ctx.state.user.profile = {
@@ -41,6 +41,7 @@ class Middleware {
                                     description: DefaultUserCreator.DEFAULT_PROFILE_NAME,
                                     roles: []
                                 }
+                            UserModel.findByIdAndUpdate(user._id, { testAuthNumber : 0 }).exec().then();
                             return ControllerHelpers.haseRoleMidleWare(ctx, next);
                         } else {
                             return ctx.answer(401, Responses.INVALID_CREDS);
@@ -123,7 +124,8 @@ class Middleware {
 
     public static anonymous: KoaMiddleware = async (ctx: ModifiedContext, next: Function) => {
         ctx.state.user = {
-            active: false,
+            activatedDate: undefined,
+            status: UserState.DESACTIVE,
             email: undefined,
             name: 'anonymous',
             profile: {
@@ -131,6 +133,7 @@ class Middleware {
                 description: 'anonymous',
                 roles: []
             },
+
             userName: 'anonymous'
         }
         await next();

@@ -4,7 +4,7 @@ import USER_CONTROLLER from '../controller/user';
 import {SchemaMap} from "joi";
 import {ModifiedContext} from "index";
 import CONTROLLER_HELPERS from "../controller/controller-helpers";
-import UserModel from './../model/user';
+import UserModel, {UserState} from './../model/user';
 import PROFILE_CONTROLLER from "../controller/profile-controller";
 import ROUTER_HELPER from "./router-helper";
 import {RoutesPrefix} from "../constante/routes-prefix";
@@ -22,8 +22,8 @@ class UserRouter {
         email: JOI.string(),
         name: JOI.string(),
         userName: JOI.string(),
+        status: JOI.string(),
         createdAt: JOI.date(),
-        active: JOI.bool().default(false),
         profile: JOI.object({
             id: JOI.string().allow(''),
             name: JOI.string().allow(''),
@@ -48,9 +48,9 @@ class UserRouter {
     private static readonly createBody = JOI.object({
         name: UserRouter.NAME_VALIDATION,
         email: UserRouter.EMAIL_NAME_VALIDATION,
+        status: JOI.string().default(UserState.DESACTIVE),
         // password: UserRouter.PASSWORD_NAME_VALIDATION,
         userName: UserRouter.USERNAME_VALIDATION,
-        active: JOI.bool().default(false),
         profile: UserRouter.PROFILE_VALIDATION,
     }).options({stripUnknown: true});
 
@@ -91,6 +91,7 @@ class UserRouter {
     private static readonly updateBody = JOI.object({
         name: UserRouter.NAME_VALIDATION,
         email: UserRouter.EMAIL_NAME_VALIDATION,
+        status: JOI.string(),
         // password: UserRouter.PASSWORD_NAME_VALIDATION,
         userName: UserRouter.USERNAME_VALIDATION,
         active: JOI.bool().allow(null).optional(),
@@ -250,7 +251,7 @@ class UserRouter {
             HELPER.validation,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setPagination(ctx, next),
             (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.ckeckExistingAndNotAdmin(ctx, next, "modifer"),
-            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.activateOrDesableAccount(ctx, next, [ctx.request.params['id']],true),
+            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.activateOrDesableAccount(ctx, next, [ctx.request.params['id']],UserState.ACTIVE),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.page(ctx, UserModel, PROFILE_CONTROLLER.condition(ctx)),
 
         ]
@@ -270,7 +271,7 @@ class UserRouter {
             HELPER.validation,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setPagination(ctx, next),
             (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.ckeckExistingAndNotAdmin(ctx, next, "modifer"),
-            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.activateOrDesableAccount(ctx, next, [ctx.request.params['id']],false),
+            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.activateOrDesableAccount(ctx, next, [ctx.request.params['id']],UserState.DESACTIVE),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.page(ctx, UserModel, PROFILE_CONTROLLER.condition(ctx)),
         ]
     })
@@ -292,7 +293,7 @@ class UserRouter {
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next, 'ids'),
             (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.ckeckAdminNotInList(ctx, next, 'modifier'),
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, UserModel, '_id', ctx.request.body, ctx.request.body.length, `Certaines utilisateur n'existent pas`),
-            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.activateOrDesableAccount(ctx, next, ctx.request.body,true),
+            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.activateOrDesableAccount(ctx, next, ctx.request.body,UserState.ACTIVE),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.page(ctx, UserModel, PROFILE_CONTROLLER.condition(ctx)),
         ]
     })
@@ -314,7 +315,7 @@ class UserRouter {
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next, 'ids'),
             (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.ckeckAdminNotInList(ctx, next, 'modifier'),
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, UserModel, '_id', ctx.request.body, ctx.request.body.length, `Certaines utilisateur n'existent pas`),
-            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.activateOrDesableAccount(ctx, next, ctx.request.body,false),
+            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.activateOrDesableAccount(ctx, next, ctx.request.body,UserState.DESACTIVE),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.page(ctx, UserModel, PROFILE_CONTROLLER.condition(ctx)),
         ]
     })

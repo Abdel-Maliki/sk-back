@@ -2,7 +2,7 @@ import {ModifiedContext, Responses} from './../types';
 
 import {Pagination} from "../common/pagination";
 import ProfileModel, {ProfileDocument, ProfileType} from "../model/profile";
-import UserModel, {UserDocument, UserType} from "../model/user";
+import UserModel, {UserDocument, UserState, UserType} from "../model/user";
 import {DefaultUserCreator} from "../service/default-user-creator";
 import ControllerHelpers from "./controller-helpers";
 import Roles from "../constante/roles";
@@ -90,7 +90,8 @@ class UserController {
     };
 
     public static checkCreateActiveRole = async (ctx: ModifiedContext, next: Function) => {
-        if (ctx.request.body.active) {
+        const user: UserType = ctx.request.body;
+        if (user.status === UserState.ACTIVE) {
             return ControllerHelpers.haseRoleMidleWare(ctx, next, Roles.ACTIVATE_ACCOUNT);
         } else {
             await next();
@@ -135,8 +136,12 @@ class UserController {
         }
     };
 
-    public static activateOrDesableAccount = async (ctx: ModifiedContext, next: Function, ids: string[], active: boolean) => {
-        const data: any = await UserModel.updateMany({_id: {$in: ids}}, {$set: {active}}).catch(() => {
+    public static activateOrDesableAccount = async (ctx: ModifiedContext, next: Function, ids: string[], status: UserState.ACTIVE | UserState.DESACTIVE) => {
+        let val = status === UserState.ACTIVE
+            ? {status, activatedDate: new Date(), testAuthNumber: 0}
+            : {status, deactivatedDate: new Date()
+        };
+        const data: any = await UserModel.updateMany({_id: {$in: ids}}, {$set: val}).catch(() => {
             return null;
         });
         if (data) {
@@ -149,7 +154,7 @@ class UserController {
     public static resetPassword = async (ctx: ModifiedContext) => {
         const data: any = await UserModel.updateOne(
             {_id: ctx.request.params['id']},
-            {$set: {password: UserController.DEFAULT_PASSWORD }}).catch(() => null);
+            {$set: {password: UserController.DEFAULT_PASSWORD}}).catch(() => null);
 
         if (data) {
             await ctx.answer(200, []);
@@ -160,12 +165,14 @@ class UserController {
 
     public static checkUpdateActiveRole = async (ctx: ModifiedContext, next: Function) => {
         const user: UserDocument = await UserModel.findOne({_id: {$ne: ctx.request.params['id']}}).exec().catch(() => null);
-        if (user.active === ctx.request.body.active) {
+        const requestUser: UserType = ctx.request.body;
+        if (user.status === requestUser.status) {
             return next();
-        } else if (user.active) {
-            return ControllerHelpers.haseRoleMidleWare(ctx, next, Roles.DISABLED_ACCOUNT);
-        } else {
+        } else if (user.status === UserState.DESACTIVE || user.status === UserState.BLOQUE) {
             return ControllerHelpers.haseRoleMidleWare(ctx, next, Roles.ACTIVATE_ACCOUNT);
+        } else {
+            return ControllerHelpers.haseRoleMidleWare(ctx, next, Roles.DISABLED_ACCOUNT);
+
         }
 
     };
@@ -176,7 +183,7 @@ class UserController {
         } else {
             const profile: ProfileType = await ProfileModel
                 .findOne({name: ctx.state.user.profile.name}, {roles: 1, _id: 0}).exec().catch(() => null);
-            return ctx.answer(200,{user: ctx.state.user, roles: profile && profile.roles ? profile.roles : []});
+            return ctx.answer(200, {user: ctx.state.user, roles: profile && profile.roles ? profile.roles : []});
         }
 
     }
