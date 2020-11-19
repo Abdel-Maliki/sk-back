@@ -30,7 +30,7 @@ class Middleware {
             public static authenticate = async (ctx: ModifiedContext, next: Function) => {
                 const token = Middleware.resolveAuthorizationHeader(ctx);
                 if (token !== null) {
-                    const decodedToken: { id: string } | null = await Jwt.verify(token).catch(() => null);
+                    const decodedToken: { id: string } | null = await Jwt.verify(token, ctx.header['user-agent']).catch(() => null);
                     if (decodedToken && decodedToken.id) {
                         const user: UserDocument = await UserModel.findById(decodedToken.id).exec().catch(() => null);
                         if (user && decodedToken.id && user._id.toString() === decodedToken.id.toString() && user.active) {

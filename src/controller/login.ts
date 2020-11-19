@@ -22,7 +22,7 @@ class Login {
             const isMatched = await user.comparePassword(password).catch(err => null);
             if (isMatched === true) {
                 const {id} = <UserType>user.toNormalization();
-                const token: string = await ctx.jwt.sign({id});
+                const token: string = await ctx.jwt.sign({id, agent: ctx.header['user-agent']});
                 return ctx.answer(200, {token});
             } else {
                 return ctx.answer(401, Responses.INVALID_CREDS);
