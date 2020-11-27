@@ -3,6 +3,7 @@ import JWT from './../lib/jwt';
 import {Pagination} from "../common/pagination";
 import {LogType} from "../model/log";
 import {UserType} from "../model/user";
+import ROUTER from "koa-joi-router";
 
 /**
  * @remarks
@@ -43,7 +44,8 @@ type MessageError = {
 */
 type ConfigStateType     = {
   user: UserStateType|null,
-  log: LogType | null
+  log: LogType | null,
+  password: string,
 };
 
 /**
@@ -73,11 +75,15 @@ interface ModifiedContext extends Context {
 }
 
 
+type RoutesData    =  {routes: ROUTER.Router[], prefix: string };
+
+
 export {
   ConfigServerType,
   ConfigJwtType,
   Responses,
   JwtFunctionResponse,
   ModifiedContext,
-  MessageError
+  MessageError,
+  RoutesData
 };

@@ -7,7 +7,8 @@ import ControllerHelpers from "../controller/controller-helpers";
 import {DefaultUserCreator} from "../service/default-user-creator";
 import {LogState} from "../model/log";
 import LoModel from './../model/log';
-import FREE_ROUTES from "../constante/free-routes";
+import ProfileModel from "../model/profile";
+import LogConstante from "../constante/log-constante";
 
 
 /**
@@ -29,20 +30,33 @@ class Middleware {
 
             public static authenticate = async (ctx: ModifiedContext, next: Function) => {
                 const token = Middleware.resolveAuthorizationHeader(ctx);
+                const payload: any = await Jwt.decode(token);
+                const mongoObjectRegEx = /^[a-f\d]{24}$/i;
+                let user: UserDocument = null;
+
+                if (payload && payload.hasOwnProperty('id') && typeof payload.id === 'string' && mongoObjectRegEx.test(payload.id)) {
+                    user = await UserModel.findById(payload.id).exec().catch(() => null);
+                    if (!user) return ctx.answer(401, Responses.INVALID_CREDS);
+                } else {
+                    return ctx.answer(401, Responses.INVALID_CREDS);
+                }
+
+
                 if (token !== null) {
-                    const decodedToken: { id: string } | null = await Jwt.verify(token, ctx.header['user-agent']).catch(() => null);
+                    const decodedToken: { id: string } | null = await Jwt.verify(token, ctx.header['user-agent'], user.password).catch(() => null);
                     if (decodedToken && decodedToken.id) {
-                        const user: UserDocument = await UserModel.findById(decodedToken.id).exec().catch(() => null);
                         if (user && decodedToken.id && user._id.toString() === decodedToken.id.toString() && user.status === UserState.ACTIVE) {
                             ctx.state.user = user.toNormalization();
+                            ctx.state.password = user.password;
                             if (ctx.state.user.userName === DefaultUserCreator.DEFAULT_PROFILE_NAME)
                                 ctx.state.user.profile = {
                                     name: DefaultUserCreator.DEFAULT_PROFILE_NAME,
                                     description: DefaultUserCreator.DEFAULT_PROFILE_NAME,
                                     roles: []
                                 }
-                            UserModel.findByIdAndUpdate(user._id, { testAuthNumber : 0 }).exec().then();
-                            return ControllerHelpers.haseRoleMidleWare(ctx, next);
+                            UserModel.findByIdAndUpdate(user._id, {testAuthNumber: 0}).exec().then();
+                            ctx.state.log.userName = user.userName;
+                            return await next();
                         } else {
                             return ctx.answer(401, Responses.INVALID_CREDS);
                         }
@@ -74,23 +88,20 @@ class Middleware {
                 if (typeof body === "string") ctx.state.log.errorMessage = body;
             }
 
-            if (error === true) {
-                ctx.body = {
-                    code: ctx.status,
-                    error: (Array.isArray(body)) ? body : {message: body}
-                };
+            if (status === 403) {
+                ctx.body = {code: ctx.status, error: {message: 'forbidden'}, data: body}
+            } else if (error === true) {
+                ctx.body = {code: ctx.status, error: (Array.isArray(body)) ? body : {message: body}};
             } else {
-                ctx.state.log.state = LogState.SUCCES;
+                ctx.state.log.state = LogState.SUCCESS;
                 ctx.body = {
                     code: ctx.status,
                     data: (typeof body === 'object') ? body : (Array.isArray(body)) ? body : {message: body}
                 };
                 if (pagination) ctx.body.pagination = pagination;
             }
-
             ctx.state.log.time = new Date().getTime() - ctx.state.log.time;
             LoModel.create(ctx.state.log).then();
-
             return ctx;
         };
 
@@ -102,6 +113,7 @@ class Middleware {
             await next();
         } catch (err) {
             console.error(err.stack || err);
+            ctx.state.log.state = LogState.ERROR;
             ctx.answer(500, Responses.INTERNAL_ERROR);
         }
     };
@@ -110,7 +122,7 @@ class Middleware {
         ctx.state.log = {
             state: LogState.ERROR,
             userName: ctx.state.user.userName,
-            action: "NOT FOUND",
+            action: LogConstante.NOT_FOUND,
             ipAddress: ctx.request.ip,
             url: ctx.request.url,
             method: ctx.request.method,
@@ -139,16 +151,28 @@ class Middleware {
         await next();
     };
 
-    public static freeRouteAction: KoaMiddleware = async (ctx: ModifiedContext, next: Function) => {
-        const path = ctx.request.method + ctx.request.url.replace(/[a-f\d]{24}/gi, ':id');
-        const result: [string] = new Map<string, [string]>(FREE_ROUTES).get(path);
-        if (result && result.length > 0) {
-            ctx.state.log.action = result[0];
-            ctx.state.log.userName = ctx.state.user.userName;
+    public static addLog = async (ctx: ModifiedContext, next: Function, log: LogConstante) => {
+        console.log('Class: Middleware, Function: addLog, Line 156 , log: '
+        , log);
+        if (log) {
+            ctx.state.log.action = log;
             return await next();
+        } else {
+            return await ControllerHelpers.forbiddenError(ctx);
         }
-        await next();
-    };
+    }
+
+    public static haseRoleMidleWare = async (ctx: ModifiedContext, next: Function, roles: string[]) => {
+        if (ctx.state.user.profile.name === DefaultUserCreator.DEFAULT_PROFILE_NAME || !roles || roles.length === 0) return await next();
+        const size: boolean = await ProfileModel.exists({
+            name: ctx.state.user.profile.name, $or: roles.map(role => ({roles: {"$in": [role]}}))
+        }).catch(() => null);
+        if (size) {
+            return await next();
+        } else {
+            return await ControllerHelpers.forbiddenError(ctx);
+        }
+    }
 
     private static resolveAuthorizationHeader: AuthorizationFunction = (ctx: ModifiedContext) => {
         if (!ctx.header || !ctx.header.authorization) {

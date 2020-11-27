@@ -7,8 +7,8 @@ import HELMET from 'koa-helmet';
 import ROUTER from './router';
 import DB from './db';
 import MIDDLEWARE from './middleware/';
+import Middleware from './middleware/';
 import {DefaultUserCreator} from "./Service/default-user-creator";
-import Middleware from "./middleware/";
 
 class Server {
     protected app: KOA;
@@ -42,12 +42,18 @@ class Server {
         return MIDDLEWARE.jwt(this.config.jwt_secret);
     }
 
-  protected router ():Server {
-    const Router = ROUTER.initiate(this.jwt());
-    this.use(Router.private.middleware());
-    this.use(Router.public.middleware());
-    return this;
-  };
+    protected router(): Server {
+        ROUTER.privateRoutes(this.jwt())
+            .reduce((pr, cu) => pr.concat(cu), [])
+            .forEach(router => {
+                this.use(router.middleware());
+            })
+        const Router = ROUTER.initiate(this.jwt());
+        // this.use(Router.private.middleware());
+        this.use(Router.public.middleware());
+        this.use(Router.notFound.middleware());
+        return this;
+    };
 
     protected middleware(): Server {
         this.use(Middleware.anonymous);

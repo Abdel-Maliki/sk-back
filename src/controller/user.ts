@@ -6,6 +6,8 @@ import UserModel, {UserDocument, UserState, UserType} from "../model/user";
 import {DefaultUserCreator} from "../service/default-user-creator";
 import ControllerHelpers from "./controller-helpers";
 import Roles from "../constante/roles";
+import BCRYPT from "bcrypt";
+import MONGOOSE from "mongoose";
 
 /**
  * @param firstName - A valid string that has already been validated by JOI
@@ -77,14 +79,22 @@ class UserController {
     }
 
     public static ckeckExistingAndNotAdmin = async (ctx: ModifiedContext, next: Function, action: string) => {
-
+        console.log('Class: UserController, Function: ckeckExistingAndNotAdmin, Line 82 , : '
+        , );
         const user: UserDocument = await UserModel.findById(ctx.request.params['id']).catch(() => null);
-
+        console.log('Class: UserController, Function: ckeckExistingAndNotAdmin, Line 83 , user: '
+        , user);
         if (user && user.userName === DefaultUserCreator.DEFAULT_PROFILE_NAME) {
+             console.log('Class: UserController, Function: ckeckExistingAndNotAdmin, Line 88 , : '
+             , );
             return ctx.answer(400, `Impossible de ${action} l'utilisateur admin`);
         } else if (user) {
+            console.log('Class: UserController, Function: ckeckExistingAndNotAdmin, Line 92 , : '
+            , );
             await next();
         } else {
+            console.log('Class: UserController, Function: ckeckExistingAndNotAdmin, Line 96 , : '
+            , );
             return ctx.answer(400, `Cet utilisateur n'existe pas`);
         }
     };
@@ -92,7 +102,7 @@ class UserController {
     public static checkCreateActiveRole = async (ctx: ModifiedContext, next: Function) => {
         const user: UserType = ctx.request.body;
         if (user.status === UserState.ACTIVE) {
-            return ControllerHelpers.haseRoleMidleWare(ctx, next, Roles.ACTIVATE_ACCOUNT);
+            return ControllerHelpers.haseRoleMidleWare(ctx, next, [Roles.ACTIVATE_ACCOUNT]);
         } else {
             await next();
         }
@@ -139,8 +149,9 @@ class UserController {
     public static activateOrDesableAccount = async (ctx: ModifiedContext, next: Function, ids: string[], status: UserState.ACTIVE | UserState.DESACTIVE) => {
         let val = status === UserState.ACTIVE
             ? {status, activatedDate: new Date(), testAuthNumber: 0}
-            : {status, deactivatedDate: new Date()
-        };
+            : {
+                status, deactivatedDate: new Date()
+            };
         const data: any = await UserModel.updateMany({_id: {$in: ids}}, {$set: val}).catch(() => {
             return null;
         });
@@ -152,9 +163,15 @@ class UserController {
     };
 
     public static resetPassword = async (ctx: ModifiedContext) => {
+
+        const salt = await BCRYPT.genSalt().catch(() => null);
+        if (!salt) return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+        const hash = await BCRYPT.hash(UserController.DEFAULT_PASSWORD, salt).catch(() => null);
+        if (!hash) return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+
         const data: any = await UserModel.updateOne(
             {_id: ctx.request.params['id']},
-            {$set: {password: UserController.DEFAULT_PASSWORD}}).catch(() => null);
+            {$set: {password: hash}}).exec().catch(() => null);
 
         if (data) {
             await ctx.answer(200, []);
@@ -169,9 +186,9 @@ class UserController {
         if (user.status === requestUser.status) {
             return next();
         } else if (user.status === UserState.DESACTIVE || user.status === UserState.BLOQUE) {
-            return ControllerHelpers.haseRoleMidleWare(ctx, next, Roles.ACTIVATE_ACCOUNT);
+            return ControllerHelpers.haseRoleMidleWare(ctx, next, [Roles.ACTIVATE_ACCOUNT]);
         } else {
-            return ControllerHelpers.haseRoleMidleWare(ctx, next, Roles.DISABLED_ACCOUNT);
+            return ControllerHelpers.haseRoleMidleWare(ctx, next, [Roles.DISABLED_ACCOUNT]);
 
         }
 
@@ -187,6 +204,35 @@ class UserController {
         }
 
     }
+
+    public static updateMyPassword = async (ctx: ModifiedContext) => {
+        const requestBody: { oldPassword: string, newPassword: string } = ctx.request.body;
+        const user: UserDocument | null = await UserModel.findById(ctx.state.user.id);
+
+        const isMatched = await user.comparePassword(requestBody.oldPassword).catch(() => null);
+        if (isMatched === true) {
+
+            const salt = await BCRYPT.genSalt().catch(() => null);
+            if (!salt) return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            const hash = await BCRYPT.hash(requestBody.newPassword, salt).catch(() => null);
+            if (!hash) return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+
+            const result: any = await UserModel.findByIdAndUpdate(user.id, {$set: {password: hash}}).exec().catch(() => null);
+            if (result) {
+                const token: string = await ctx.jwt.sign({id: user._id, agent: ctx.header['user-agent'], password: hash});
+                return ctx.answer(200, {token});
+            } else {
+                return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            }
+        } else {
+            const update = user.testAuthNumber >= 9
+                ? {status: UserState.BLOQUE, blockedDate: new Date(), $inc: {testAuthNumber: 1}}
+                : {$inc: {testAuthNumber: 1}}
+            UserModel.findByIdAndUpdate(user._id, update).exec().then();
+            return ctx.answer(400, "l'ancien mot de passe est incorrect");
+        }
+    }
+
 
     private static finishedCheck = async (ctx: ModifiedContext, next: Function, userType: UserType, user: UserDocument) => {
         if (user && (userType.userName === user.userName || userType.userName === user.email)) {

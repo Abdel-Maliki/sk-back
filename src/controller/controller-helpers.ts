@@ -1,13 +1,21 @@
 import {ClientSession, Document, Model, SaveOptions, startSession} from "mongoose";
 import {Pagination} from "../common/pagination";
-import {ModifiedContext, Responses} from './../types';
-import ProfileModel from "../model/profile";
+import {JwtFunctionResponse, ModifiedContext, Responses} from './../types';
+import ProfileModel, {ProfileType} from "../model/profile";
 import {DefaultUserCreator} from "../service/default-user-creator";
 import ROUTEURS_ROLE from "../constante/routeurs-role";
 import SINGLE_AUTH_PATHS from "../constante/single-auth-paths";
 import {ObjectSchema} from "joi";
-import {Joi as JOI} from "koa-joi-router";
-import {LogState} from "../model/log";
+import ROUTER, {Joi as JOI, Spec} from "koa-joi-router";
+import Roles from "../constante/roles";
+import LogConstante from "../constante/log-constante";
+import {RoutesPrefix} from "../constante/routes-prefix";
+import Middleware from "../middleware";
+import USER_ROUTES from "../router/user";
+import MIDDLEWARE from "../middleware";
+import BCRYPT from "bcrypt";
+import UserModel from "../model/user";
+const {env: ENV} = process;
 
 
 /**
@@ -140,7 +148,7 @@ class ControllerHelpers {
         ctx: ModifiedContext,
         model: Model<MODEL>
     ) {
-        const profile: MODEL | null = await model.findById(ctx.request.params['id']);
+        const profile: MODEL | null = await model.findById(ctx.request.params['id']).exec().catch(() => null);
 
         if (profile) {
             let response: DOCUMENT_TYPE = profile.toNormalization();
@@ -173,7 +181,7 @@ class ControllerHelpers {
         const data: MODEL | null = await model.findByIdAndDelete(ctx.request.params['id']).session(session);
 
         if (data) {
-            await next();
+            return await next();
         } else {
             return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
         }
@@ -295,15 +303,21 @@ class ControllerHelpers {
         }
     };
 
-    public static async dispatch<MODEL extends Document & { toNormalization(): DOCUMENT_TYPE }, DOCUMENT_TYPE>(
-        ctx: ModifiedContext,
-        next: Function,
-        dataName: string = 'entity'
-    ) {
+    public static async dispatch(ctx: ModifiedContext, next: Function, dataName: string = 'entity') {
         const entity = ctx.request.body[dataName];
         ctx.pagination = ctx.request.body.pagination;
         ctx.request.body = entity;
-        await next();
+        return await next();
+    };
+
+    public static async checkPassword(ctx: ModifiedContext, next: Function, dataName: string = 'password') {
+        const isEquals = await BCRYPT.compare(ctx.request.body[dataName], ctx.state.password).catch(() => null);
+        if (isEquals === true) return await next();
+        else if (isEquals === false) {
+            UserModel.findByIdAndUpdate(ctx.state.user.id, { $inc: { testAuthNumber : 1 }}).exec().then();
+            return ctx.answer(400, "Le mot de passe est incorrect");
+        }
+        return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
     };
 
     public static async setPagination<MODEL extends Document & { toNormalization(): DOCUMENT_TYPE }, DOCUMENT_TYPE>(
@@ -311,37 +325,32 @@ class ControllerHelpers {
         next: Function
     ) {
 
+        console.log('Class: ControllerHelpers, Function: setPagination, Line 328 , : '
+        , );
         ctx.pagination = ctx.request.body;
         await next();
     }
 
-    public static haseRoleMidleWare = async (ctx: ModifiedContext, next: Function, role?: string) => {
-        const path = ctx.request.method + ctx.request.url.replace(/[a-f\d]{24}/gi, ':id');
-        const singleAuth: [string] = new Map<string, [string]>(SINGLE_AUTH_PATHS).get(path);
-
-        if (singleAuth && singleAuth.length > 0) {
-            ctx.state.log.action = singleAuth[0];
-            ctx.state.log.userName = ctx.state.user.userName;
-            return await next();
+    public static forbiddenError = async (ctx: ModifiedContext) => {
+        if (ctx.state.user.profile.name === DefaultUserCreator.DEFAULT_PROFILE_NAME) {
+            return ctx.answer(403, {user: ctx.state.user, roles: Object.values(Roles)});
+        } else {
+            const profile: ProfileType = await ProfileModel
+                .findOne({name: ctx.state.user.profile.name}, {roles: 1, _id: 0}).exec().catch(() => null);
+            return ctx.answer(403, {user: ctx.state.user, roles: profile && profile.roles ? profile.roles : []});
         }
+    }
 
-        if (!role) {
-            const roleLog = new Map<string, [string, string]>(ROUTEURS_ROLE).get(path);
-            if (!roleLog) return ctx.answer(403, "Forbidden");
-            role = roleLog[0];
-            ctx.state.log.action = roleLog[1];
-            ctx.state.log.userName = ctx.state.user.userName;
-        }
-
+    public static haseRoleMidleWare = async (ctx: ModifiedContext, next: Function, roles?: string[]) => {
+        //const path = ctx.request.method + ctx.request.url.replace(/[a-f\d]{24}/gi, ':id');
         if (ctx.state.user.profile.name === DefaultUserCreator.DEFAULT_PROFILE_NAME) return await next();
         const size: boolean = await ProfileModel.exists({
-            name: ctx.state.user.profile.name,
-            roles: {"$in": [role]}
+            name: ctx.state.user.profile.name, $or: roles.map(role => ({roles: {"$in": [role]}}))
         }).catch(() => null);
         if (size) {
             return await next();
         } else {
-            return ctx.answer(403, "Forbidden");
+            return await ControllerHelpers.forbiddenError(ctx);
         }
     }
 
@@ -352,6 +361,16 @@ class ControllerHelpers {
             roles: {"$in": [role]}
         }).catch(() => null);
         return size && size > 0;
+    }
+
+    public static buildRouter = ( spec: Spec, roles: Roles[], log: LogConstante, prefix: string, jwtMiddleware: JwtFunctionResponse): ROUTER.Router => {
+        const router = ROUTER();
+        router.prefix(prefix);
+        router.use(jwtMiddleware.authenticate);
+        router.use((context, next) => Middleware.addLog(context, next, log));
+        router.use((context, next) => Middleware.haseRoleMidleWare(context, next, roles));
+        router.route(spec);
+        return router;
     }
 }
 

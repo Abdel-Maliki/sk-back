@@ -1,14 +1,16 @@
-import ROUTER, {Joi as JOI, Router, Spec} from 'koa-joi-router';
+import ROUTER, {Joi as JOI, Spec} from 'koa-joi-router';
 import HELPER from './helper';
 import PROFILE_CONTROLLER from '../controller/profile-controller';
 import {ObjectSchema, SchemaMap} from "joi";
 import CONTROLLER_HELPERS from "../controller/controller-helpers";
-import {ModifiedContext} from "index";
+import {JwtFunctionResponse, ModifiedContext, RoutesData} from "index";
 import ProfileModel, {ProfileDocument, ProfileType} from './../model/profile';
 import {DefaultUserCreator} from "../service/default-user-creator";
 import ROUTER_HELPER from "./router-helper";
 import {RoutesPrefix} from "../constante/routes-prefix";
 import UserModel from './../model/user';
+import ROLES from "../constante/roles";
+import LOG_CONSTANTE from "../constante/log-constante";
 
 
 class ProfileRouter {
@@ -273,19 +275,23 @@ class ProfileRouter {
             continueOnError: true,
             type: HELPER.contentType.JSON,
             params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
-            body: JOI.array().unique().allow([]).items(JOI.string()).label("roles "),
+            body: JOI.object({
+                password: JOI.string().required(),
+                roles: JOI.array().unique().allow([]).items(JOI.string()).label("roles ")}),
             output: HELPER.defaultOutput(JOI.array().empty())
         },
         handler: [
             HELPER.validation,
+            CONTROLLER_HELPERS.checkPassword,
+            (ctx: ModifiedContext, next: Function) =>  CONTROLLER_HELPERS.dispatch(ctx, next, "roles"),
             (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.validateRoles(ctx, next),
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, ProfileModel,
-                '_id', [ctx.request.params['id']], 1 ,`Le profile ${ctx.request.params['id']} n'existe pas`),
+                '_id', [ctx.request.params['id']], 1, `Le profile ${ctx.request.params['id']} n'existe pas`),
             (ctx: ModifiedContext) => PROFILE_CONTROLLER.setRoles(ctx),
         ]
     });
 
-    public static routes(): Router {
+    /*public static routes(): Router {
         const router = ROUTER();
         router.prefix(RoutesPrefix.profile);
         router.route([
@@ -305,6 +311,25 @@ class ProfileRouter {
             ProfileRouter.setRoles,
         ]);
         return router;
+    }*/
+
+    public static routes(jwtMiddleware: JwtFunctionResponse): ROUTER.Router[] {
+        return [
+                CONTROLLER_HELPERS.buildRouter(ProfileRouter.create, [ROLES.ADD_PROFILE], LOG_CONSTANTE.ADD_PROFILE, RoutesPrefix.profile, jwtMiddleware),
+                CONTROLLER_HELPERS.buildRouter(ProfileRouter.createAndGet, [ROLES.ADD_PROFILE], LOG_CONSTANTE.ADD_PROFILE, RoutesPrefix.profile, jwtMiddleware),
+                CONTROLLER_HELPERS.buildRouter(ProfileRouter.update, [ROLES.EDIT_PROFILE], LOG_CONSTANTE.EDIT_PROFILE, RoutesPrefix.profile, jwtMiddleware),
+                CONTROLLER_HELPERS.buildRouter(ProfileRouter.updateAndGet, [ROLES.EDIT_PROFILE], LOG_CONSTANTE.EDIT_PROFILE, RoutesPrefix.profile, jwtMiddleware),
+                CONTROLLER_HELPERS.buildRouter(ProfileRouter.delete, [ROLES.DELETE_PROFILE], LOG_CONSTANTE.DELETE_PROFILE, RoutesPrefix.profile, jwtMiddleware),
+                CONTROLLER_HELPERS.buildRouter(ProfileRouter.deleteAndGet, [ROLES.DELETE_PROFILE], LOG_CONSTANTE.DELETE_PROFILE, RoutesPrefix.profile, jwtMiddleware),
+                CONTROLLER_HELPERS.buildRouter(ProfileRouter.deleteAll, [ROLES.DELETE_PROFILE], LOG_CONSTANTE.DELETE_MULTIPLE_PROFILE, RoutesPrefix.profile, jwtMiddleware),
+                CONTROLLER_HELPERS.buildRouter(ProfileRouter.deleteAllAndGet, [ROLES.DELETE_PROFILE], LOG_CONSTANTE.DELETE_MULTIPLE_PROFILE, RoutesPrefix.profile, jwtMiddleware),
+                CONTROLLER_HELPERS.buildRouter(ProfileRouter.read, [ROLES.READ_PROFILE, ROLES.DELETE_PROFILE, ROLES.ADD_PROFILE, ROLES.EDIT_PROFILE, ROLES.AFFECT_PROFILE_ROLE], LOG_CONSTANTE.READ_PROFILE, RoutesPrefix.profile, jwtMiddleware),
+                CONTROLLER_HELPERS.buildRouter(ProfileRouter.page, [ROLES.READ_PROFILE, ROLES.DELETE_PROFILE, ROLES.ADD_PROFILE, ROLES.EDIT_PROFILE, ROLES.AFFECT_PROFILE_ROLE], LOG_CONSTANTE.PAGE_PROFILE, RoutesPrefix.profile, jwtMiddleware),
+                CONTROLLER_HELPERS.buildRouter(ProfileRouter.all, [ROLES.READ_PROFILE, ROLES.DELETE_PROFILE, ROLES.ADD_PROFILE, ROLES.EDIT_PROFILE, ROLES.AFFECT_PROFILE_ROLE], LOG_CONSTANTE.LISTER_PROFILE, RoutesPrefix.profile, jwtMiddleware),
+                CONTROLLER_HELPERS.buildRouter(ProfileRouter.search, [ROLES.READ_PROFILE, ROLES.DELETE_PROFILE, ROLES.ADD_PROFILE, ROLES.EDIT_PROFILE, ROLES.AFFECT_PROFILE_ROLE], LOG_CONSTANTE.FILTER_PROFILE, RoutesPrefix.profile, jwtMiddleware),
+                CONTROLLER_HELPERS.buildRouter(ProfileRouter.getRoles, [ROLES.AFFECT_PROFILE_ROLE], LOG_CONSTANTE.READ_PROFILE_ROLE, RoutesPrefix.profile, jwtMiddleware),
+                CONTROLLER_HELPERS.buildRouter(ProfileRouter.setRoles, [ROLES.AFFECT_PROFILE_ROLE], LOG_CONSTANTE.AFFECT_PROFILE_ROLE, RoutesPrefix.profile, jwtMiddleware),
+            ];
     }
 
 }

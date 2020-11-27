@@ -1,6 +1,7 @@
 import {Joi as JOI, OutputValidation} from 'koa-joi-router';
-import {JoiObject, ObjectSchema} from "joi";
+import {JoiObject, ObjectSchema, SchemaMap} from "joi";
 import {MessageError, ModifiedContext} from "index";
+import UserRouter from "./user";
 
 enum methods {
     POST = 'post',
@@ -135,16 +136,42 @@ class Helper {
 
     public static allErrorResponse() {
         return {
-            '400-599': {
+            '400-402,404-599': {
                 body: {
                     code: JOI.number().min(400).max(599).required(),
                     error: JOI.object({
                         message: JOI.string()
                     })
                 }
+            },
+            '403': {
+                body: {
+                    code: JOI.number().allow(403).required(),
+                    error: JOI.object({
+                        message: JOI.string()
+                    }),
+                    data: JOI.object({
+                        user: JOI.object(Helper.userOutput),
+                        roles: JOI.array().items(JOI.string()).allow([]),
+                    })
+                }
             }
         };
-    };
+    }
+
+    public static readonly userOutput: SchemaMap = {
+        id: JOI.string(),
+        email: JOI.string(),
+        name: JOI.string(),
+        userName: JOI.string(),
+        status: JOI.string(),
+        createdAt: JOI.date(),
+        profile: JOI.object({
+            id: JOI.string().allow(''),
+            name: JOI.string().allow(''),
+            description: JOI.string().allow(''),
+        })
+    }
 
     public static successResponse<T = any>(code: number, data: T): { [status: string]: OutputValidation } {
         return {
