@@ -40,7 +40,6 @@ enum LogConstante  {
     DELETE_MULTIPLE_LOG= "Suppression multiple des logs",
     READ_LOG= "consulter un log",
     PAGE_LOG= 'page logs',
-    FILTER_LOG= 'filtrer les logs',
 }
 
 export default LogConstante;
