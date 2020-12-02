@@ -1,7 +1,6 @@
 import {Joi as JOI, OutputValidation} from 'koa-joi-router';
 import {JoiObject, ObjectSchema, SchemaMap} from "joi";
 import {MessageError, ModifiedContext} from "index";
-import UserRouter from "./user";
 
 enum methods {
     POST = 'post',

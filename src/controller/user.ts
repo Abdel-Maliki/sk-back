@@ -91,7 +91,7 @@ class UserController {
         } else if (user) {
             console.log('Class: UserController, Function: ckeckExistingAndNotAdmin, Line 92 , : '
             , );
-            await next();
+            return await next();
         } else {
             console.log('Class: UserController, Function: ckeckExistingAndNotAdmin, Line 96 , : '
             , );
@@ -105,6 +105,15 @@ class UserController {
             return ControllerHelpers.haseRoleMidleWare(ctx, next, [Roles.ACTIVATE_ACCOUNT]);
         } else {
             await next();
+        }
+    }
+
+    public static allUserNames = async (ctx: ModifiedContext) => {
+        const users: UserDocument[] = await UserModel.find({}, {userName: 1, _id: 0}).catch(() => null);
+        if (users && users.length > 0) {
+            return ctx.answer(200, users.map(value => value.userName));
+        } else {
+            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
         }
     }
 
@@ -146,17 +155,15 @@ class UserController {
         }
     };
 
-    public static activateOrDesableAccount = async (ctx: ModifiedContext, next: Function, ids: string[], status: UserState.ACTIVE | UserState.DESACTIVE) => {
+    public static activateOrDisableAccount = async (ctx: ModifiedContext, next: Function, ids: string[], status: UserState.ACTIVE | UserState.DESACTIVE) => {
         let val = status === UserState.ACTIVE
             ? {status, activatedDate: new Date(), testAuthNumber: 0}
             : {
                 status, deactivatedDate: new Date()
             };
-        const data: any = await UserModel.updateMany({_id: {$in: ids}}, {$set: val}).catch(() => {
-            return null;
-        });
+        const data: any = await UserModel.updateMany({_id: {$in: ids}}, {$set: val}).catch(() => null);
         if (data) {
-            await next();
+            return await next();
         } else {
             return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
         }

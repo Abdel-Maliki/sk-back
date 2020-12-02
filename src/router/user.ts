@@ -3,11 +3,12 @@ import HELPER from './helper';
 import USER_CONTROLLER from '../controller/user';
 import {JwtFunctionResponse, ModifiedContext} from "index";
 import CONTROLLER_HELPERS from "../controller/controller-helpers";
-import UserModel, {UserState} from './../model/user';
+import UserModel, {UserDocument, UserState, UserType} from './../model/user';
 import PROFILE_CONTROLLER from "../controller/profile-controller";
 import ROUTER_HELPER from "./router-helper";
 import {RoutesPrefix} from "../constante/routes-prefix";
 import ROLES from "../constante/roles";
+import Roles from "../constante/roles";
 import LOG_CONSTANTE from "../constante/log-constante";
 
 
@@ -23,17 +24,30 @@ class UserRouter {
         method: HELPER.methods.GET,
         path: ROUTER_HELPER.readPath(),
         validate: {
+            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
             continueOnError: true,
-            params: JOI.object({
-                id: JOI.string().regex(HELPER.mongoObjectRegEx)
-            }),
             output: HELPER.defaultOutput(JOI.object(HELPER.userOutput))
         },
         handler: [
             HELPER.validation,
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.read(ctx, UserModel)
         ]
-    })
+    });
+
+    public static allUsernames: Spec = ({
+        method: HELPER.methods.GET,
+        path: '/all-user-name',
+        validate: {
+            continueOnError: true,
+            output: HELPER.defaultOutput(JOI.array().items(JOI.string()))
+        },
+        handler: [
+            HELPER.validation,
+            USER_CONTROLLER.allUserNames,
+        ]
+    });
+
+
     public static activateAccount: Spec = ({
         method: HELPER.methods.PUT,
         path: '/activate/:id',
@@ -41,17 +55,16 @@ class UserRouter {
             continueOnError: true,
             type: HELPER.contentType.JSON,
             params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
-            body: JOI.object({password: JOI.string().required(), pagination: CONTROLLER_HELPERS.paginationInput}),
+            body: JOI.object({others: JOI.object({password: JOI.string().required()}), pagination: CONTROLLER_HELPERS.paginationInput}),
             output: HELPER.defaultOutput(JOI.array().items(HELPER.userOutput), true)
         },
         handler: [
             HELPER.validation,
             CONTROLLER_HELPERS.checkPassword,
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next, 'password'),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setPagination(ctx, next),
             (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.ckeckExistingAndNotAdmin(ctx, next, "modifer"),
-            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.activateOrDesableAccount(ctx, next, [ctx.request.params['id']], UserState.ACTIVE),
-            (ctx: ModifiedContext) => CONTROLLER_HELPERS.page(ctx, UserModel, PROFILE_CONTROLLER.condition(ctx)),
-
+            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.activateOrDisableAccount(ctx, next, [ctx.request.params['id']], UserState.ACTIVE),
+            (ctx: ModifiedContext) => CONTROLLER_HELPERS.page<UserDocument, UserType>(ctx, UserModel, PROFILE_CONTROLLER.condition(ctx)),
         ]
     })
     public static disableAccount: Spec = ({
@@ -61,15 +74,15 @@ class UserRouter {
             continueOnError: true,
             type: HELPER.contentType.JSON,
             params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
-            body: JOI.object({password: JOI.string().required(), pagination: CONTROLLER_HELPERS.paginationInput}),
+            body: JOI.object({others: JOI.object({password: JOI.string().required()}), pagination: CONTROLLER_HELPERS.paginationInput}),
             output: HELPER.defaultOutput(JOI.array().items(HELPER.userOutput), true)
         },
         handler: [
             HELPER.validation,
             CONTROLLER_HELPERS.checkPassword,
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next, 'password'),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setPagination(ctx, next),
             (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.ckeckExistingAndNotAdmin(ctx, next, "modifer"),
-            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.activateOrDesableAccount(ctx, next, [ctx.request.params['id']], UserState.DESACTIVE),
+            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.activateOrDisableAccount(ctx, next, [ctx.request.params['id']], UserState.DESACTIVE),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.page(ctx, UserModel, PROFILE_CONTROLLER.condition(ctx)),
         ]
     })
@@ -82,7 +95,7 @@ class UserRouter {
             body: JOI.object({
                 ids: JOI.array().items(JOI.string().regex(HELPER.mongoObjectRegEx)).min(1),
                 pagination: CONTROLLER_HELPERS.paginationInput,
-                password: JOI.string().required()
+                others: JOI.object({password: JOI.string().required()})
             }),
             output: HELPER.defaultOutput(JOI.array().items(HELPER.userOutput), true)
         },
@@ -92,7 +105,7 @@ class UserRouter {
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next, 'ids'),
             (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.ckeckAdminNotInList(ctx, next, 'modifier'),
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, UserModel, '_id', ctx.request.body, ctx.request.body.length, `Certaines utilisateur n'existent pas`),
-            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.activateOrDesableAccount(ctx, next, ctx.request.body, UserState.ACTIVE),
+            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.activateOrDisableAccount(ctx, next, ctx.request.body, UserState.ACTIVE),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.page(ctx, UserModel, PROFILE_CONTROLLER.condition(ctx)),
         ]
     })
@@ -105,7 +118,7 @@ class UserRouter {
             body: JOI.object({
                 ids: JOI.array().items(JOI.string().regex(HELPER.mongoObjectRegEx)).min(1),
                 pagination: CONTROLLER_HELPERS.paginationInput,
-                password: JOI.string().required()
+                others: JOI.object({password: JOI.string().required()})
             }),
             output: HELPER.defaultOutput(JOI.array().items(HELPER.userOutput), true)
         },
@@ -115,7 +128,7 @@ class UserRouter {
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next, 'ids'),
             (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.ckeckAdminNotInList(ctx, next, 'modifier'),
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, UserModel, '_id', ctx.request.body, ctx.request.body.length, `Certaines utilisateur n'existent pas`),
-            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.activateOrDesableAccount(ctx, next, ctx.request.body, UserState.DESACTIVE),
+            (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.activateOrDisableAccount(ctx, next, ctx.request.body, UserState.DESACTIVE),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.page(ctx, UserModel, PROFILE_CONTROLLER.condition(ctx)),
         ]
     })
@@ -141,7 +154,7 @@ class UserRouter {
             continueOnError: true,
             params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
             type: HELPER.contentType.JSON,
-            body: JOI.object({password: JOI.string().required()}),
+            body: JOI.object({others: JOI.object({password: JOI.string().required()})}),
             output: HELPER.defaultOutput(JOI.empty())
         },
         handler: [
@@ -167,7 +180,7 @@ class UserRouter {
             type: HELPER.contentType.JSON,
             body: JOI.object({
                 entity: UserRouter.createBody,
-                password: JOI.string()
+                others: JOI.object({password: JOI.string().required()}),
             }),
             output: HELPER.defaultOutput(JOI.object(HELPER.userOutput))
         },
@@ -187,7 +200,7 @@ class UserRouter {
             type: HELPER.contentType.JSON,
             body: JOI.object({
                 entity: UserRouter.createBody,
-                password: JOI.string(),
+                others: JOI.object({password: JOI.string().required()}),
                 pagination: CONTROLLER_HELPERS.paginationInput
             }),
             output: HELPER.defaultOutput(JOI.array().items(HELPER.userOutput), true)
@@ -221,7 +234,7 @@ class UserRouter {
             }),
             body: JOI.object({
                 entity: UserRouter.updateBody,
-                password: JOI.string()
+                others: JOI.object({password: JOI.string().required()}),
             }),
             output: HELPER.defaultOutput(JOI.object(HELPER.userOutput))
         },
@@ -242,7 +255,7 @@ class UserRouter {
             params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
             body: JOI.object({
                 entity: UserRouter.updateBody,
-                password: JOI.string(),
+                others: JOI.object({password: JOI.string().required()}),
                 pagination: CONTROLLER_HELPERS.paginationInput
             }),
             output: HELPER.defaultOutput(JOI.array().items(HELPER.userOutput), true)
@@ -263,7 +276,7 @@ class UserRouter {
             continueOnError: true,
             type: HELPER.contentType.JSON,
             params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
-            body: JOI.object({password: JOI.string().required(), pagination: CONTROLLER_HELPERS.paginationInput}),
+            body: JOI.object({others: JOI.object({password: JOI.string().required()}), pagination: CONTROLLER_HELPERS.paginationInput}),
             output: HELPER.defaultOutput(JOI.array().items(HELPER.userOutput), true)
         },
         handler: [
@@ -281,7 +294,7 @@ class UserRouter {
         validate: {
             continueOnError: true,
             type: HELPER.contentType.JSON,
-            body: CONTROLLER_HELPERS.paginationInput,
+            body: JOI.object({pagination: CONTROLLER_HELPERS.getPaginationInput()}),
             output: HELPER.defaultOutput(JOI.array().items(HELPER.userOutput), true)
         },
         handler: [
@@ -297,7 +310,7 @@ class UserRouter {
             continueOnError: true,
             params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
             type: HELPER.contentType.JSON,
-            body: JOI.object({password: JOI.string().required()}),
+            body: JOI.object({others: JOI.object({others: JOI.object({password: JOI.string().required()})})}),
             output: HELPER.defaultOutput(JOI.object(HELPER.userOutput))
         },
         handler: [
@@ -313,7 +326,7 @@ class UserRouter {
         validate: {
             continueOnError: true,
             type: HELPER.contentType.JSON,
-            body: JOI.object({password: JOI.string().required(), ids: JOI.array().items(JOI.string().regex(HELPER.mongoObjectRegEx)).min(1)}),
+            body: JOI.object({others: JOI.object({password: JOI.string().required()}), ids: JOI.array().items(JOI.string().regex(HELPER.mongoObjectRegEx)).min(1)}),
             output: HELPER.defaultOutput(JOI.array().items(HELPER.userOutput), true)
         },
         handler: [
@@ -331,7 +344,7 @@ class UserRouter {
             continueOnError: true,
             type: HELPER.contentType.JSON,
             body: JOI.object({
-                password: JOI.string().required(),
+                others: JOI.object({password: JOI.string().required()}),
                 ids: JOI.array().items(JOI.string().regex(HELPER.mongoObjectRegEx)).min(1),
                 pagination: CONTROLLER_HELPERS.paginationInput,
             }),
@@ -398,6 +411,7 @@ class UserRouter {
             CONTROLLER_HELPERS.buildRouter(UserRouter.currentUserData, [], LOG_CONSTANTE.CURRENT_USER_DATA, RoutesPrefix.user, jwtMiddleware),
             CONTROLLER_HELPERS.buildRouter(UserRouter.resetPassword, [ROLES.RESET_PASSWORD], LOG_CONSTANTE.RESET_PASSWORD, RoutesPrefix.user, jwtMiddleware),
             CONTROLLER_HELPERS.buildRouter(UserRouter.updateMyPassword, [], LOG_CONSTANTE.UPDATE_MY_PASSWORD, RoutesPrefix.user, jwtMiddleware),
+            CONTROLLER_HELPERS.buildRouter(UserRouter.allUsernames, [Roles.DELETE_LOG, Roles.READ_LOG], LOG_CONSTANTE.ALL_USERNAME, RoutesPrefix.user, jwtMiddleware),
         ]
     }
 

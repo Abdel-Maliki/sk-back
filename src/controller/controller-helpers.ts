@@ -3,16 +3,11 @@ import {Pagination} from "../common/pagination";
 import {JwtFunctionResponse, ModifiedContext, Responses} from './../types';
 import ProfileModel, {ProfileType} from "../model/profile";
 import {DefaultUserCreator} from "../service/default-user-creator";
-import ROUTEURS_ROLE from "../constante/routeurs-role";
-import SINGLE_AUTH_PATHS from "../constante/single-auth-paths";
 import {ObjectSchema} from "joi";
 import ROUTER, {Joi as JOI, Spec} from "koa-joi-router";
 import Roles from "../constante/roles";
 import LogConstante from "../constante/log-constante";
-import {RoutesPrefix} from "../constante/routes-prefix";
 import Middleware from "../middleware";
-import USER_ROUTES from "../router/user";
-import MIDDLEWARE from "../middleware";
 import BCRYPT from "bcrypt";
 import UserModel from "../model/user";
 const {env: ENV} = process;
@@ -33,6 +28,17 @@ class ControllerHelpers {
         globalFilter: JOI.string(),
         filters: JOI.object(),
     }).options({stripUnknown: true});
+
+    public static getPaginationInput(filterSchema: ObjectSchema = JOI.object()): ObjectSchema{
+        return JOI.object({
+            page: JOI.number().min(0).required(),
+            size: JOI.number().min(1).required(),
+            sort: JOI.string(),
+            direction: JOI.number().equal([1, -1]),
+            globalFilter: JOI.string(),
+            filters: filterSchema,
+        }).options({stripUnknown: true});
+    }
 
     public static async paginate<MODEL extends Document & { toNormalization(): DOCUMENT_TYPE }, DOCUMENT_TYPE>(
         model: Model<MODEL>,
@@ -57,6 +63,9 @@ class ControllerHelpers {
         ctx: ModifiedContext,
         model: Model<MODEL>,
         condition: any) {
+
+        console.log('Class: ControllerHelpers, Function: page, Line 67 , : '
+        , );
 
         let newVar = await ControllerHelpers.paginate<MODEL, DOCUMENT_TYPE>(model, ctx.pagination, condition);
 
@@ -310,8 +319,8 @@ class ControllerHelpers {
         return await next();
     };
 
-    public static async checkPassword(ctx: ModifiedContext, next: Function, dataName: string = 'password') {
-        const isEquals = await BCRYPT.compare(ctx.request.body[dataName], ctx.state.password).catch(() => null);
+    public static async checkPassword(ctx: ModifiedContext, next: Function) {
+        const isEquals = await BCRYPT.compare(ctx.request.body.others.password, ctx.state.password).catch(() => null);
         if (isEquals === true) return await next();
         else if (isEquals === false) {
             UserModel.findByIdAndUpdate(ctx.state.user.id, { $inc: { testAuthNumber : 1 }}).exec().then();
@@ -324,10 +333,7 @@ class ControllerHelpers {
         ctx: ModifiedContext,
         next: Function
     ) {
-
-        console.log('Class: ControllerHelpers, Function: setPagination, Line 328 , : '
-        , );
-        ctx.pagination = ctx.request.body;
+        ctx.pagination = ctx.request.body.pagination;
         await next();
     }
 

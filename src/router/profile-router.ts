@@ -17,10 +17,8 @@ class ProfileRouter {
 
     static readonly errorMessage = `Certaines profiles n'existent pas`;
 
-
     public static readonly NAME_VALIDATION = JOI.string().trim().min(3).max(HELPER.defaults.length).label("le nom du profile").required();
     public static readonly DESCRIPTION_VALIDATION = JOI.string().trim().allow('', null).max(HELPER.defaults.length).label("la description du profile").optional();
-
 
     private static readonly profileInput: ObjectSchema = JOI.object({
         name: ProfileRouter.NAME_VALIDATION,
@@ -45,7 +43,7 @@ class ProfileRouter {
         validate: {
             continueOnError: true,
             type: HELPER.contentType.JSON,
-            body: ProfileRouter.createInput,
+            body: JOI.object({entity: ProfileRouter.createInput}),
             output: HELPER.defaultOutput(JOI.object(ProfileRouter.profileOutput))
         },
         handler: [
@@ -56,7 +54,7 @@ class ProfileRouter {
     });
 
     private static read: Spec = ({
-        method: HELPER.methods.GET,
+        method: HELPER.methods.PUT,
         path: ROUTER_HELPER.readPath(),
         validate: {
             continueOnError: true,
@@ -76,7 +74,7 @@ class ProfileRouter {
             continueOnError: true,
             type: HELPER.contentType.JSON,
             params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
-            body: ProfileRouter.profileInput,
+            body: JOI.object({entity: ProfileRouter.profileInput}),
             output: HELPER.defaultOutput(JOI.object(ProfileRouter.profileOutput))
         },
         handler: [
@@ -88,7 +86,7 @@ class ProfileRouter {
     });
 
     private static delete: Spec = ({
-        method: HELPER.methods.DELETE,
+        method: HELPER.methods.PUT,
         path: ROUTER_HELPER.deletePath(),
         validate: {
             continueOnError: true,
@@ -106,7 +104,7 @@ class ProfileRouter {
     });
 
     private static all: Spec = ({
-        method: HELPER.methods.GET,
+        method: HELPER.methods.PUT,
         path: ROUTER_HELPER.allPath(),
         validate: {
             continueOnError: true,
@@ -124,7 +122,7 @@ class ProfileRouter {
         validate: {
             continueOnError: true,
             type: HELPER.contentType.JSON,
-            body: JOI.array().items(JOI.string().regex(HELPER.mongoObjectRegEx)).min(1),
+            body: JOI.object({ids: JOI.array().items(JOI.string().regex(HELPER.mongoObjectRegEx)).min(1)}),
             output: HELPER.defaultOutput(JOI.empty())
         },
         handler: [
@@ -207,7 +205,7 @@ class ProfileRouter {
             continueOnError: true,
             type: HELPER.contentType.JSON,
             params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
-            body: CONTROLLER_HELPERS.paginationInput,
+            body: JOI.object({pagination: CONTROLLER_HELPERS.getPaginationInput()}),
             output: HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
         },
         handler: [
@@ -227,7 +225,7 @@ class ProfileRouter {
         validate: {
             continueOnError: true,
             type: HELPER.contentType.JSON,
-            body: CONTROLLER_HELPERS.paginationInput,
+            body: JOI.object({pagination: CONTROLLER_HELPERS.getPaginationInput()}),
             output: HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
         },
         handler: [
@@ -276,7 +274,7 @@ class ProfileRouter {
             type: HELPER.contentType.JSON,
             params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
             body: JOI.object({
-                password: JOI.string().required(),
+                others: JOI.object({password: JOI.string().required()}),
                 roles: JOI.array().unique().allow([]).items(JOI.string()).label("roles ")}),
             output: HELPER.defaultOutput(JOI.array().empty())
         },
