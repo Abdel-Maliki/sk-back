@@ -23,20 +23,20 @@ class ProfileController {
         });
 
         if (totalExisting === null) {
-            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
         } else if (totalExisting === 0) {
             return await ProfileController.checkNameAndDescription(ctx, next);
         } else {
-            return ctx.answer(400, `${body.name} existe déja`);
+            return ctx.answerUserError(400, `${body.name} existe déja`);
         }
     };
 
     public static checkNameAndDescription = async (ctx: ModifiedContext, next: Function) => {
         if (ctx.request.body.name.toLowerCase() === DefaultUserCreator.DEFAULT_PROFILE_NAME.toLowerCase()) {
-            return ctx.answer(400, `Le nom est ne peut pas être admin`);
+            return ctx.answerUserError(400, `Le nom est ne peut pas être admin`);
         } else if (ctx.request.body.description
             && ctx.request.body.description.toLowerCase() === DefaultUserCreator.DEFAULT_PROFILE_NAME.toLowerCase()) {
-            return ctx.answer(400, `Le nom est ne peut pas être admin`);
+            return ctx.answerUserError(400, `Le nom est ne peut pas être admin`);
         } else {
             await next();
         }
@@ -49,11 +49,11 @@ class ProfileController {
         });
 
         if (profile && profile.toNormalization().name === DefaultUserCreator.DEFAULT_PROFILE_NAME) {
-            return ctx.answer(400, `Impossible de ${action} le profile admin`);
+            return ctx.answerUserError(400, `Impossible de ${action} le profile admin`);
         } else if (profile) {
             await next();
         } else {
-            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
         }
     };
 
@@ -65,7 +65,7 @@ class ProfileController {
         });
 
         if (totalExisting === null || totalExisting > 0) {
-            return ctx.answer(400, `Impossible de supprimer le profile admin`);
+            return ctx.answerUserError(400, `Impossible de supprimer le profile admin`);
         } else {
             await next();
         }
@@ -77,11 +77,11 @@ class ProfileController {
         });
 
         if (totalExisting === null) {
-            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
         } else if (totalExisting === 0) {
             await next();
         } else {
-            return ctx.answer(400, `ce profile est associé à ${totalExisting} utilisateur${totalExisting > 1 ? 's' : ''}`);
+            return ctx.answerUserError(400, `ce profile est associé à ${totalExisting} utilisateur${totalExisting > 1 ? 's' : ''}`);
         }
     };
 
@@ -108,16 +108,16 @@ class ProfileController {
                 if (next) {
                     await next();
                 } else {
-                    return ctx.answer(200, response);
+                    return ctx.answerSuccess(200, response);
                 }
             } else {
                 await session.abortTransaction();
-                return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+                return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
             }
 
         } else {
             await session.abortTransaction();
-            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
         }
     };
 
@@ -141,11 +141,11 @@ class ProfileController {
             });
 
         if (profiles && profiles.length > 0) {
-            return ctx.answer(200, profiles[0].roles ? profiles[0].roles : []);
+            return ctx.answerSuccess(200, profiles[0].roles ? profiles[0].roles : []);
         } else if (profiles) {
-            return ctx.answer(400, `Le profile ${ctx.request.params['id']} n'existe pas`);
+            return ctx.answerUserError(400, `Le profile ${ctx.request.params['id']} n'existe pas`);
         } else {
-            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
         }
     };
 
@@ -153,7 +153,7 @@ class ProfileController {
         const allRoles: string[] = Object.values(Roles);
         const profileRoles: string[] = ctx.request.body;
         for (let i = 0; i < profileRoles.length; i++) {
-            if (!allRoles.includes(profileRoles[i])) return ctx.answer(400, `${profileRoles[i]} n'est pas valide`);
+            if (!allRoles.includes(profileRoles[i])) return ctx.answerUserError(400, `${profileRoles[i]} n'est pas valide`);
         }
         await next();
     };
@@ -165,9 +165,9 @@ class ProfileController {
             });
 
         if (result) {
-            return ctx.answer(200, []);
+            return ctx.answerSuccess(200, []);
         } else {
-            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
         }
     };
 

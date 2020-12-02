@@ -33,7 +33,7 @@ class UserController {
         });
 
         if (profile === null) {
-            return ctx.answer(400, `Le profile ${ctx.request.params['id']} n'existe pas`);
+            return ctx.answerUserError(400, `Le profile ${ctx.request.params['id']} n'existe pas`);
         } else {
             ctx.request.body.profile = profile.toNormalization();
             await next();
@@ -48,7 +48,7 @@ class UserController {
 
     public static adminCheck = async (ctx: ModifiedContext, next: Function) => {
         if (ctx.request.body.userName.toLowerCase() === DefaultUserCreator.DEFAULT_PROFILE_NAME.toLowerCase()) {
-            return ctx.answer(400, `Le nom d'utilisateur ne peut pas être admin`);
+            return ctx.answerUserError(400, `Le nom d'utilisateur ne peut pas être admin`);
         } else {
             await next();
         }
@@ -74,7 +74,7 @@ class UserController {
             ctx.request.body.profile = profile.toNormalization();
             await next();
         } else {
-            ctx.answer(400, "Le profile n'existe pas");
+            ctx.answerUserError(400, "Le profile n'existe pas");
         }
     }
 
@@ -87,7 +87,7 @@ class UserController {
         if (user && user.userName === DefaultUserCreator.DEFAULT_PROFILE_NAME) {
              console.log('Class: UserController, Function: ckeckExistingAndNotAdmin, Line 88 , : '
              , );
-            return ctx.answer(400, `Impossible de ${action} l'utilisateur admin`);
+            return ctx.answerUserError(400, `Impossible de ${action} l'utilisateur admin`);
         } else if (user) {
             console.log('Class: UserController, Function: ckeckExistingAndNotAdmin, Line 92 , : '
             , );
@@ -95,7 +95,7 @@ class UserController {
         } else {
             console.log('Class: UserController, Function: ckeckExistingAndNotAdmin, Line 96 , : '
             , );
-            return ctx.answer(400, `Cet utilisateur n'existe pas`);
+            return ctx.answerUserError(400, `Cet utilisateur n'existe pas`);
         }
     };
 
@@ -111,9 +111,9 @@ class UserController {
     public static allUserNames = async (ctx: ModifiedContext) => {
         const users: UserDocument[] = await UserModel.find({}, {userName: 1, _id: 0}).catch(() => null);
         if (users && users.length > 0) {
-            return ctx.answer(200, users.map(value => value.userName));
+            return ctx.answerSuccess(200, users.map(value => value.userName));
         } else {
-            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
         }
     }
 
@@ -147,9 +147,9 @@ class UserController {
         });
 
         if (totalExisting === -1) {
-            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
         } else if (totalExisting > 0) {
-            return ctx.answer(400, `Impossible de ${action} l'utilisateur admin`);
+            return ctx.answerUserError(400, `Impossible de ${action} l'utilisateur admin`);
         } else {
             await next();
         }
@@ -165,25 +165,25 @@ class UserController {
         if (data) {
             return await next();
         } else {
-            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
         }
     };
 
     public static resetPassword = async (ctx: ModifiedContext) => {
 
         const salt = await BCRYPT.genSalt().catch(() => null);
-        if (!salt) return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+        if (!salt) return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
         const hash = await BCRYPT.hash(UserController.DEFAULT_PASSWORD, salt).catch(() => null);
-        if (!hash) return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+        if (!hash) return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
 
         const data: any = await UserModel.updateOne(
             {_id: ctx.request.params['id']},
             {$set: {password: hash}}).exec().catch(() => null);
 
         if (data) {
-            await ctx.answer(200, []);
+            await ctx.answerSuccess(200, []);
         } else {
-            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
         }
     };
 
@@ -203,11 +203,11 @@ class UserController {
 
     public static currentUserData = async (ctx: ModifiedContext) => {
         if (ctx.state.user.profile.name === DefaultUserCreator.DEFAULT_PROFILE_NAME) {
-            return ctx.answer(200, {user: ctx.state.user, roles: Object.values(Roles)});
+            return ctx.answerSuccess(200, {user: ctx.state.user, roles: Object.values(Roles)});
         } else {
             const profile: ProfileType = await ProfileModel
                 .findOne({name: ctx.state.user.profile.name}, {roles: 1, _id: 0}).exec().catch(() => null);
-            return ctx.answer(200, {user: ctx.state.user, roles: profile && profile.roles ? profile.roles : []});
+            return ctx.answerSuccess(200, {user: ctx.state.user, roles: profile && profile.roles ? profile.roles : []});
         }
 
     }
@@ -220,32 +220,32 @@ class UserController {
         if (isMatched === true) {
 
             const salt = await BCRYPT.genSalt().catch(() => null);
-            if (!salt) return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            if (!salt) return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
             const hash = await BCRYPT.hash(requestBody.newPassword, salt).catch(() => null);
-            if (!hash) return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            if (!hash) return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
 
             const result: any = await UserModel.findByIdAndUpdate(user.id, {$set: {password: hash}}).exec().catch(() => null);
             if (result) {
                 const token: string = await ctx.jwt.sign({id: user._id, agent: ctx.header['user-agent'], password: hash});
-                return ctx.answer(200, {token});
+                return ctx.answerSuccess(200, {token});
             } else {
-                return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+                return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
             }
         } else {
             const update = user.testAuthNumber >= 9
                 ? {status: UserState.BLOQUE, blockedDate: new Date(), $inc: {testAuthNumber: 1}}
                 : {$inc: {testAuthNumber: 1}}
             UserModel.findByIdAndUpdate(user._id, update).exec().then();
-            return ctx.answer(400, "l'ancien mot de passe est incorrect");
+            return ctx.answerUserError(400, "l'ancien mot de passe est incorrect");
         }
     }
 
 
     private static finishedCheck = async (ctx: ModifiedContext, next: Function, userType: UserType, user: UserDocument) => {
         if (user && (userType.userName === user.userName || userType.userName === user.email)) {
-            return ctx.answer(400, `Ce nom d'utilisateur existe déja`);
+            return ctx.answerUserError(400, `Ce nom d'utilisateur existe déja`);
         } else if (user && (userType.email === user.userName || userType.email === user.email)) {
-            return ctx.answer(400, `L'adresse email existe déja`);
+            return ctx.answerUserError(400, `L'adresse email existe déja`);
         } else {
             return await next();
         }

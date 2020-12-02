@@ -64,9 +64,6 @@ class ControllerHelpers {
         model: Model<MODEL>,
         condition: any) {
 
-        console.log('Class: ControllerHelpers, Function: page, Line 67 , : '
-        , );
-
         let newVar = await ControllerHelpers.paginate<MODEL, DOCUMENT_TYPE>(model, ctx.pagination, condition);
 
         if (newVar.body && newVar.body.length === 0 && newVar.pagination.totalElements > 0 && ctx.pagination.page > 0) {
@@ -75,14 +72,14 @@ class ControllerHelpers {
             newVar = await ControllerHelpers.paginate<MODEL, DOCUMENT_TYPE>(model, ctx.pagination, condition);
 
             if (newVar.body) {
-                return ctx.answer(200, newVar.body, newVar.pagination);
+                return ctx.answerSuccess(200, newVar.body, newVar.pagination);
             } else {
-                return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+                return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
             }
         } else if (newVar.body) {
-            return ctx.answer(200, newVar.body, newVar.pagination);
+            return ctx.answerSuccess(200, newVar.body, newVar.pagination);
         } else {
-            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
         }
     };
 
@@ -96,9 +93,9 @@ class ControllerHelpers {
         });
         if (createProfile) {
             let response: DOCUMENT_TYPE = createProfile.toNormalization();
-            return ctx.answer(201, response);
+            return ctx.answerSuccess(201, response);
         } else {
-            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
         }
     };
 
@@ -112,7 +109,7 @@ class ControllerHelpers {
         if (createProfile) {
             await next();
         } else {
-            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
         }
     };
 
@@ -127,9 +124,9 @@ class ControllerHelpers {
 
         if (updateProfile) {
             let response: DOCUMENT_TYPE = updateProfile.toNormalization();
-            return ctx.answer(200, response);
+            return ctx.answerSuccess(200, response);
         } else {
-            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
         }
     }
 
@@ -149,7 +146,7 @@ class ControllerHelpers {
         if (updateProfile) {
             await next();
         } else {
-            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
         }
     }
 
@@ -161,9 +158,9 @@ class ControllerHelpers {
 
         if (profile) {
             let response: DOCUMENT_TYPE = profile.toNormalization();
-            return ctx.answer(200, response);
+            return ctx.answerSuccess(200, response);
         } else {
-            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
         }
     };
 
@@ -175,9 +172,9 @@ class ControllerHelpers {
         const profile: MODEL | null = await model.findByIdAndDelete(ctx.request.params['id']).session(session);
         if (profile) {
             let response: DOCUMENT_TYPE = profile.toNormalization();
-            return ctx.answer(200, response);
+            return ctx.answerSuccess(200, response);
         } else {
-            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
         }
     };
 
@@ -192,7 +189,7 @@ class ControllerHelpers {
         if (data) {
             return await next();
         } else {
-            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
         }
     };
 
@@ -215,10 +212,10 @@ class ControllerHelpers {
 
         if (error) {
             if (!withSession) await session.abortTransaction();
-            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
         } else {
             if (!withSession) await session.commitTransaction();
-            return !!next ? await next() : ctx.answer(200, {});
+            return !!next ? await next() : ctx.answerSuccess(200, {});
         }
     };
 
@@ -229,9 +226,9 @@ class ControllerHelpers {
         const allrofiles: MODEL[] | null = await model.find({}).exec().catch(() => null);
         if (allrofiles) {
             let response: DOCUMENT_TYPE[] = allrofiles.map(profile => profile.toNormalization());
-            return ctx.answer(200, response);
+            return ctx.answerSuccess(200, response);
         } else {
-            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
         }
     }
 
@@ -250,7 +247,7 @@ class ControllerHelpers {
         });
 
         if (totalExisting !== requiredQuantity) {
-            return ctx.answer(400, errorMessage);
+            return ctx.answerUserError(400, errorMessage);
         } else {
             await next();
         }
@@ -270,7 +267,7 @@ class ControllerHelpers {
         const documents: Document[] = await model.find(criteria).catch(() => null);
 
         if (!documents || documents.filter(value => value._id.toString() !== id.toString()).length > 0) {
-            return ctx.answer(400, errorMessage);
+            return ctx.answerUserError(400, errorMessage);
         } else {
             return await next();
         }
@@ -291,7 +288,7 @@ class ControllerHelpers {
         });
 
         if (totalExisting === null || totalExisting > 0) {
-            return ctx.answer(400, errorMessage(totalExisting));
+            return ctx.answerUserError(400, errorMessage(totalExisting));
         } else {
             await next();
         }
@@ -306,16 +303,20 @@ class ControllerHelpers {
             .catch(() => null);
         if (allrofiles) {
             let response: DOCUMENT_TYPE[] = allrofiles.map(profile => profile.toNormalization());
-            return ctx.answer(200, response);
+            return ctx.answerSuccess(200, response);
         } else {
-            return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+            return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
         }
     };
 
     public static async dispatch(ctx: ModifiedContext, next: Function, dataName: string = 'entity') {
+        console.log('Class: ControllerHelpers, Function: dispatch, Line 313 (): '
+        , );
         const entity = ctx.request.body[dataName];
         ctx.pagination = ctx.request.body.pagination;
         ctx.request.body = entity;
+        console.log('Class: ControllerHelpers, Function: dispatch, Line 318 (): '
+        , );
         return await next();
     };
 
@@ -324,9 +325,11 @@ class ControllerHelpers {
         if (isEquals === true) return await next();
         else if (isEquals === false) {
             UserModel.findByIdAndUpdate(ctx.state.user.id, { $inc: { testAuthNumber : 1 }}).exec().then();
-            return ctx.answer(400, "Le mot de passe est incorrect");
+            return ctx.answerUserError(400, "Le mot de passe est incorrect");
         }
-        return ctx.answer(400, Responses.SOMETHING_WENT_WRONG);
+        console.log('Class: ControllerHelpers, Function: checkPassword, Line 330 (): '
+        , );
+        return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
     };
 
     public static async setPagination<MODEL extends Document & { toNormalization(): DOCUMENT_TYPE }, DOCUMENT_TYPE>(
@@ -339,11 +342,11 @@ class ControllerHelpers {
 
     public static forbiddenError = async (ctx: ModifiedContext) => {
         if (ctx.state.user.profile.name === DefaultUserCreator.DEFAULT_PROFILE_NAME) {
-            return ctx.answer(403, {user: ctx.state.user, roles: Object.values(Roles)});
+            return ctx.answerUserError(403, 'forbidden',{user: ctx.state.user, roles: Object.values(Roles)});
         } else {
             const profile: ProfileType = await ProfileModel
                 .findOne({name: ctx.state.user.profile.name}, {roles: 1, _id: 0}).exec().catch(() => null);
-            return ctx.answer(403, {user: ctx.state.user, roles: profile && profile.roles ? profile.roles : []});
+            return ctx.answerUserError(403, 'forbidden',{user: ctx.state.user, roles: profile && profile.roles ? profile.roles : []});
         }
     }
 

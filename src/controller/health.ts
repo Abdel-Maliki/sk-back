@@ -9,7 +9,7 @@ enum STATUS {
 
 class Health {
   public static read = async (ctx: ModifiedContext) => {
-    return ctx.answer(200, {
+    return ctx.answerSuccess(200, {
       status: STATUS.PASS,
       version,
       timestamp: (new Date()).toISOString(),

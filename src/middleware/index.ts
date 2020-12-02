@@ -36,9 +36,9 @@ class Middleware {
 
                 if (payload && payload.hasOwnProperty('id') && typeof payload.id === 'string' && mongoObjectRegEx.test(payload.id)) {
                     user = await UserModel.findById(payload.id).exec().catch(() => null);
-                    if (!user) return ctx.answer(401, Responses.INVALID_CREDS);
+                    if (!user) return ctx.answerUserError(401, Responses.INVALID_CREDS);
                 } else {
-                    return ctx.answer(401, Responses.INVALID_CREDS);
+                    return ctx.answerUserError(401, Responses.INVALID_CREDS);
                 }
 
 
@@ -58,13 +58,13 @@ class Middleware {
                             ctx.state.log.userName = user.userName;
                             return await next();
                         } else {
-                            return ctx.answer(401, Responses.INVALID_CREDS);
+                            return ctx.answerUserError(401, Responses.INVALID_CREDS);
                         }
                     } else {
-                        return ctx.answer(401, Responses.INVALID_CREDS);
+                        return ctx.answerUserError(401, Responses.INVALID_CREDS);
                     }
                 } else {
-                    return ctx.answer(401, Responses.INVALID_CREDS);
+                    return ctx.answerUserError(401, Responses.INVALID_CREDS);
                 }
             }
         }
@@ -75,36 +75,48 @@ class Middleware {
     public static answer: KoaMiddleware = async (ctx: ModifiedContext, next: Function) => {
         /**
          * @param status - The http code
-         * @param body - An Object or string input depending on the http code
-         * @param pagination - Le nombre total d'element dans la collection
+         * @param errorMessage - An string input depending on the http code
+         * @param body - An string input depending on the http code
          */
-        ctx.answer = (status: number, body: object | string, pagination?: Pagination) => {
+        ctx.answerUserError = (status: number, errorMessage: string, body?: any) => {
             ctx.state.log.code = status;
             ctx.status = status;
-            let error: boolean = false;
-
-            if (status >= 299 || status < 200) {
-                error = true;
-                if (typeof body === "string") ctx.state.log.errorMessage = body;
-            }
-
-            if (status === 403) {
-                ctx.body = {code: ctx.status, error: {message: 'forbidden'}, data: body}
-            } else if (error === true) {
-                ctx.body = {code: ctx.status, error: (Array.isArray(body)) ? body : {message: body}};
-            } else {
-                ctx.state.log.state = LogState.SUCCESS;
-                ctx.body = {
-                    code: ctx.status,
-                    data: (typeof body === 'object') ? body : (Array.isArray(body)) ? body : {message: body}
-                };
-                if (pagination) ctx.body.pagination = pagination;
-            }
+            ctx.state.log.errorMessage = errorMessage;
+            ctx.body = {code: ctx.status, error: {message: errorMessage}}
+            if (status === 403) ctx.body.data = body;
             ctx.state.log.time = new Date().getTime() - ctx.state.log.time;
             LoModel.create(ctx.state.log).then();
             return ctx;
         };
 
+        ctx.answerServerError = () => {
+            ctx.state.log.code = 500;
+            ctx.status = 500;
+            ctx.state.log.errorMessage = Responses.INTERNAL_ERROR;
+            ctx.body = {code: ctx.status, error: {message: Responses.INTERNAL_ERROR}}
+            ctx.state.log.time = new Date().getTime() - ctx.state.log.time;
+            LoModel.create(ctx.state.log).then();
+            return ctx;
+        };
+
+        /**
+         * @param status - The http code
+         * @param body - An Object or string input depending on the http code
+         * @param pagination - Le nombre total d'element dans la collection
+         */
+        ctx.answerSuccess = (status: 200| 201 , body: any, pagination?: Pagination) => {
+            ctx.state.log.code = status;
+            ctx.status = status;
+            ctx.state.log.state = LogState.SUCCESS;
+            ctx.body = {
+                code: ctx.status,
+                data: body,
+                pagination,
+            };
+            ctx.state.log.time = new Date().getTime() - ctx.state.log.time;
+            LoModel.create(ctx.state.log).then();
+            return ctx;
+        };
         await next();
     };
 
@@ -116,7 +128,7 @@ class Middleware {
             ctx.state.log.state = LogState.SERVER_ERROR;
             ctx.state.log.serverError = err.stack || err;
             ctx.state.log.time = ctx.state.log.timeError;
-            ctx.answer(500, Responses.INTERNAL_ERROR);
+            ctx.answerServerError();
         }
     };
 
@@ -156,7 +168,7 @@ class Middleware {
 
     public static addLog = async (ctx: ModifiedContext, next: Function, log: LogConstante) => {
         console.log('Class: Middleware, Function: addLog, Line 156 , log: '
-        , log);
+            , log);
         if (log) {
             ctx.state.log.action = log;
             return await next();

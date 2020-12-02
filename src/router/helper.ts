@@ -26,13 +26,12 @@ class Helper {
     public static mongoObjectRegEx = /^[a-f\d]{24}$/i;
 
     public static validation = async (ctx: ModifiedContext, next: Function) => {
-        new Map([['lll', 'lll'], ['lll', 'lll']]);
         if (ctx.invalid) {
             let body: { details: Array<MessageError> } = ctx.invalid.body || ctx.invalid.query || ctx.invalid.params;
             let response: Array<MessageError | undefined | null> = body && body.details ? body.details : [];
             const message: any = (response.length > 0 && response[0].hasOwnProperty('context'))
                 ? Helper.messageWrapper(response[0]) : response
-            ctx.answer(412, message)
+            ctx.answerUserError(412, message)
         } else {
             return await next();
         }
