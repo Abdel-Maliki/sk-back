@@ -113,14 +113,16 @@ class Middleware {
             await next();
         } catch (err) {
             console.error(err.stack || err);
-            ctx.state.log.state = LogState.ERROR;
+            ctx.state.log.state = LogState.SERVER_ERROR;
+            ctx.state.log.serverError = err.stack || err;
+            ctx.state.log.time = ctx.state.log.timeError;
             ctx.answer(500, Responses.INTERNAL_ERROR);
         }
     };
 
     public static initLog: KoaMiddleware = async (ctx: ModifiedContext, next: Function) => {
         ctx.state.log = {
-            state: LogState.ERROR,
+            state: LogState.CLIENT_ERROR,
             userName: ctx.state.user.userName,
             action: LogConstante.NOT_FOUND,
             ipAddress: ctx.request.ip,
@@ -129,6 +131,7 @@ class Middleware {
             host: ctx.header.host,
             userAgent: ctx.header['user-agent'],
             time: new Date().getTime(),
+            timeError: new Date().getTime(),
             code: 404
         };
         await next();

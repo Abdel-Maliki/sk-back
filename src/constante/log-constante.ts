@@ -34,6 +34,7 @@ enum LogConstante  {
     FILTER_PROFILE= 'filtrer les profiles',
     CURRENT_USER_DATA= 'Récuperation des information de l\'utilisateur courrent',
     UPDATE_MY_PASSWORD= 'Mise à jour de son mot de passe',
+    ALL_USERNAME= 'Tout les noms d\'utilisateurs',
 
     DELETE_LOG= "Supprimer un log",
     DELETE_MULTIPLE_LOG= "Suppression multiple des logs",
