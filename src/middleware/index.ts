@@ -9,6 +9,7 @@ import {LogState} from "../model/log";
 import LoModel from './../model/log';
 import ProfileModel from "../model/profile";
 import LogConstante from "../constante/log-constante";
+import {version} from "../../package.json";
 
 
 /**
@@ -141,6 +142,7 @@ class Middleware {
             url: ctx.request.url,
             method: ctx.request.method,
             host: ctx.header.host,
+            version,
             userAgent: ctx.header['user-agent'],
             time: new Date().getTime(),
             timeError: new Date().getTime(),

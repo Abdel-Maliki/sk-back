@@ -1,6 +1,7 @@
 import MONGOOSE from 'mongoose';
 import LogConstante from "../constante/log-constante";
 import {EntityBase} from "./entity-base";
+import {version} from "../../package.json";
 
 type toNormalizationFunction = () => LogType;
 
@@ -21,6 +22,7 @@ export type LogDocument = MONGOOSE.Document & {
     errorMessage: string,
     serverError: string;
     createdAt?: string;
+    version?: string;
     toNormalization: toNormalizationFunction
 };
 
@@ -40,6 +42,7 @@ export type LogType = EntityBase & {
     host?: string | null,
     errorMessage?: string | null,
     serverError?: string | null,
+    version: string | null,
 };
 
 const logSchema = new MONGOOSE.Schema({
@@ -56,6 +59,7 @@ const logSchema = new MONGOOSE.Schema({
     state: {type: String, default: 'ERROR'},
     errorMessage: {type: String, default: ''},
     serverError: {type: String, default: ''},
+    version: {type: String, default: ''},
 }, {timestamps: true});
 
 const toNormalization: toNormalizationFunction = function () {
@@ -73,6 +77,7 @@ const toNormalization: toNormalizationFunction = function () {
         userAgent: _logObject.userAgent,
         host: _logObject.host,
         code: _logObject.code,
+        version: _logObject.version,
         errorMessage: _logObject.errorMessage,
         serverError: _logObject.serverError,
         time: _logObject.time,

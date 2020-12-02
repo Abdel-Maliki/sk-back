@@ -39,6 +39,7 @@ class LogRouter {
         host: JOI.string().optional().allow('', null),
         errorMessage: JOI.string().optional().allow('', null),
         serverError: JOI.string().optional().allow('', null),
+        version: JOI.string().optional().allow('', null),
         createdAt: JOI.date(),
     };
 
