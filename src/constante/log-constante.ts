@@ -35,6 +35,8 @@ enum LogConstante  {
     CURRENT_USER_DATA= 'Récuperation des information de l\'utilisateur courrent',
     UPDATE_MY_PASSWORD= 'Mise à jour de son mot de passe',
     ALL_USERNAME= 'Tout les noms d\'utilisateurs',
+    FORGOT_PASSWORD_REQUEST= 'Démande de modification de mot de passe',
+    FORGOT_PASSWORD_FINALISATION = 'Démande de modification de mot de passe finalisation',
 
     DELETE_LOG= "Supprimer un log",
     DELETE_MULTIPLE_LOG= "Suppression multiple des logs",

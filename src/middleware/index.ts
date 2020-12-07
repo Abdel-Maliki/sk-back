@@ -44,7 +44,7 @@ class Middleware {
 
 
                 if (token !== null) {
-                    const decodedToken: { id: string } | null = await Jwt.verify(token, ctx.header['user-agent'], user.password).catch(() => null);
+                    const decodedToken: { id: string } | null = await Jwt.verify(token, Jwt.secret + ctx.header['user-agent'] + user.password).catch(() => null);
                     if (decodedToken && decodedToken.id) {
                         if (user && decodedToken.id && user._id.toString() === decodedToken.id.toString() && user.status === UserState.ACTIVE) {
                             ctx.state.user = user.toNormalization();

@@ -8,10 +8,11 @@ import HEALTH_ROUTES from './router/health';
 import {JwtFunctionResponse} from "index";
 import Middleware from "./middleware";
 import LogConstante from "./constante/log-constante";
+import {RoutesPrefix} from "./constante/routes-prefix";
 
 class Router {
 
-    public static privateRoutes(jwtMiddleware: JwtFunctionResponse):ROUTER.Router[][] {
+    public static privateRoutes(jwtMiddleware: JwtFunctionResponse): ROUTER.Router[][] {
         return [
             USER_ROUTES.routes(jwtMiddleware),
             PROFILE_ROUTES.routes(jwtMiddleware),
@@ -21,6 +22,14 @@ class Router {
 
     private static publicRoutes: { data: { spec: Spec, log: LogConstante }[], prefix: string }[] = [
         {prefix: '', data: [{spec: HEALTH_ROUTES.read, log: LogConstante.HEALTH}]},
+        {
+            prefix: RoutesPrefix.user,
+            data: [{spec: USER_ROUTES.forgotPasswordRequest, log: LogConstante.FORGOT_PASSWORD_REQUEST}]
+        },
+        {
+            prefix: RoutesPrefix.user,
+            data: [{spec: USER_ROUTES.forgotPasswordFinalisation, log: LogConstante.FORGOT_PASSWORD_FINALISATION}]
+        },
         LOGIN_ROUTES.routes(),
     ]
 

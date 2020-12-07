@@ -390,6 +390,41 @@ class UserRouter {
         ]
     })
 
+    public static forgotPasswordRequest: Spec = ({
+        method: HELPER.methods.PUT,
+        path: '/forget-password-request',
+        validate: {
+            continueOnError: true,
+            type: HELPER.contentType.JSON,
+            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
+            body: JOI.object({email: JOI.string().email().required()}),
+            output: HELPER.defaultOutput(JOI.empty())
+        },
+        handler: [
+            HELPER.validation,
+            USER_CONTROLLER.forgotPasswordRequest,
+        ]
+    })
+
+    public static forgotPasswordFinalisation: Spec = ({
+        method: HELPER.methods.PUT,
+        path: '/forget-password-finatisation',
+        validate: {
+            continueOnError: true,
+            type: HELPER.contentType.JSON,
+            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
+            body: JOI.object({
+                token: JOI.string().required(),
+                password: JOI.string().required()
+            }),
+            output: HELPER.defaultOutput(JOI.empty())
+        },
+        handler: [
+            HELPER.validation,
+            USER_CONTROLLER.forgotPasswordFinalisation,
+        ]
+    })
+
     public static routes(jwtMiddleware: JwtFunctionResponse): ROUTER.Router[] {
         return [
             CONTROLLER_HELPERS.buildRouter(UserRouter.create, [ROLES.ADD_USER], LOG_CONSTANTE.ADD_USER, RoutesPrefix.user, jwtMiddleware),

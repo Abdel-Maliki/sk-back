@@ -8,6 +8,9 @@ import ControllerHelpers from "./controller-helpers";
 import Roles from "../constante/roles";
 import BCRYPT from "bcrypt";
 import MONGOOSE from "mongoose";
+import Mail from "../service/mail";
+import config from "../configs/config";
+import {SentMessageInfo} from "nodemailer";
 
 /**
  * @param firstName - A valid string that has already been validated by JOI
@@ -39,6 +42,57 @@ class UserController {
             await next();
         }
     };
+
+    public static forgotPasswordRequest = async (ctx: ModifiedContext) => {
+        const user: UserDocument = await UserModel.findOne({email: ctx.request.body.email}).catch(() => null);
+        if (!user) return ctx.answerUserError(400, `Cet adresse email n'appartient à auccun utiliateur`);
+        if (user.status === UserState.DESACTIVE){
+            await UserModel.findByIdAndUpdate(user._id, { $inc: { testAuthNumber : 1 }}).exec().then();
+            return ctx.answerUserError(401, "Votre compte a été désactivé contactez l'administrateur de votre système");
+        }
+        const token = await ctx.jwt.generateToken({id: user._id}, "1 days", ctx.jwt.secret + user.password).catch((error) => {
+            return error;
+        });
+        if (!token) return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
+
+        const response: SentMessageInfo = await Mail.sendMail(ctx.request.body.email, "test", `Merci d'utiliser ce lien pour tapper votre nouveau mot de passe
+        http://${'localhost:4300/forget-password-finalization/' + token}`).catch((error) => {
+            return null;
+        });
+
+        if (!response) return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
+        return ctx.answerSuccess(200, []);
+    }
+
+    public static forgotPasswordFinalisation = async (ctx: ModifiedContext) => {
+
+        const payload: any = await ctx.jwt.decode(ctx.request.body.token);
+        const mongoObjectRegEx = /^[a-f\d]{24}$/i;
+        let dbUser: UserDocument = null;
+        if (payload && payload.hasOwnProperty('id') && typeof payload.id === 'string' && mongoObjectRegEx.test(payload.id)) {
+            dbUser = await UserModel.findById(payload.id).exec().catch(() => null);
+            if (!dbUser) return ctx.answerUserError(401, Responses.INVALID_CREDS);
+        } else {
+            return ctx.answerUserError(401, Responses.INVALID_CREDS);
+        }
+
+        const userId: {id: string} = await ctx.jwt.verify(ctx.request.body.token, ctx.jwt.secret + dbUser.password).catch(() => null);
+        if (!userId || !userId.id)  return ctx.answerUserError(401, 'invalid token');
+        const user: UserDocument = await UserModel.findById(userId.id).catch(() => null);
+        if (!user) return ctx.answerUserError(400, `Cet utiliateur n'existe pas`);
+        if (user.status === UserState.DESACTIVE){
+            return ctx.answerUserError(401, "Votre compte a été désactivé contactez l'administrateur de votre système");
+        }
+        const salt = await BCRYPT.genSalt().catch(() => null);
+        if (!salt) return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
+        const hash = await BCRYPT.hash(ctx.request.body.password, salt).catch(() => null);
+        if (!hash) return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
+
+        const result: any = await UserModel.findByIdAndUpdate(user.id,
+            {$set: {password: hash, status: UserState.ACTIVE, testAuthNumber: 0}}).exec().catch(() => null);
+        if (!result) return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
+        return ctx.answerSuccess(200, []);
+    }
 
     public static setPassword = async (ctx: ModifiedContext, next: Function) => {
         ctx.request.body.password = UserController.DEFAULT_PASSWORD;
@@ -80,21 +134,21 @@ class UserController {
 
     public static ckeckExistingAndNotAdmin = async (ctx: ModifiedContext, next: Function, action: string) => {
         console.log('Class: UserController, Function: ckeckExistingAndNotAdmin, Line 82 , : '
-        , );
+            ,);
         const user: UserDocument = await UserModel.findById(ctx.request.params['id']).catch(() => null);
         console.log('Class: UserController, Function: ckeckExistingAndNotAdmin, Line 83 , user: '
-        , user);
+            , user);
         if (user && user.userName === DefaultUserCreator.DEFAULT_PROFILE_NAME) {
-             console.log('Class: UserController, Function: ckeckExistingAndNotAdmin, Line 88 , : '
-             , );
+            console.log('Class: UserController, Function: ckeckExistingAndNotAdmin, Line 88 , : '
+                ,);
             return ctx.answerUserError(400, `Impossible de ${action} l'utilisateur admin`);
         } else if (user) {
             console.log('Class: UserController, Function: ckeckExistingAndNotAdmin, Line 92 , : '
-            , );
+                ,);
             return await next();
         } else {
             console.log('Class: UserController, Function: ckeckExistingAndNotAdmin, Line 96 , : '
-            , );
+                ,);
             return ctx.answerUserError(400, `Cet utilisateur n'existe pas`);
         }
     };
@@ -226,7 +280,8 @@ class UserController {
 
             const result: any = await UserModel.findByIdAndUpdate(user.id, {$set: {password: hash}}).exec().catch(() => null);
             if (result) {
-                const token: string = await ctx.jwt.sign({id: user._id, agent: ctx.header['user-agent'], password: hash});
+                const token: string = await ctx.jwt.generateToken({id: user._id},"20 days",
+                    ctx.jwt.secret + ctx.header['user-agent'] + hash);
                 return ctx.answerSuccess(200, {token});
             } else {
                 return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);

@@ -28,7 +28,8 @@ class Login {
             const isMatched = await user.comparePassword(password).catch(err => null);
             if (isMatched === true) {
                 const {id} = <UserType>user.toNormalization();
-                const token: string = await ctx.jwt.sign({id, agent: ctx.header['user-agent'], password: user.password});
+                const token: string = await ctx.jwt.generateToken({id},"20 days",
+                    ctx.jwt.secret + ctx.header['user-agent'] + user.password);
                 return ctx.answerSuccess(200, {token});
             } else {
                 const update = user.testAuthNumber >= 9
