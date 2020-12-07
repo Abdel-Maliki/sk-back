@@ -7,16 +7,16 @@ import {ClientSession, startSession} from "mongoose";
  */
 
 export class DefaultUserCreator {
-    public static readonly DEFAULT_PROFILE_NAME = "admin";
+    public static readonly ADMIN_USERNAME = "admin";
 
     private static readonly defaultUser: UserType & { password: string } = {
         activatedDate: new Date(),
         status: UserState.ACTIVE,
         email: "malikiamadou00@gmail.com",
         createdBy: "DEFAULT",
-        name: "admin",
-        userName: "admin",
-        password: "admin",
+        name: DefaultUserCreator.ADMIN_USERNAME,
+        userName: DefaultUserCreator.ADMIN_USERNAME,
+        password: DefaultUserCreator.ADMIN_USERNAME,
         profile: null,
         updatedAt: ""
     };

@@ -341,7 +341,7 @@ class ControllerHelpers {
     }
 
     public static forbiddenError = async (ctx: ModifiedContext) => {
-        if (ctx.state.user.profile.name === DefaultUserCreator.DEFAULT_PROFILE_NAME) {
+        if (ctx.state.user.profile.name === DefaultUserCreator.ADMIN_USERNAME) {
             return ctx.answerUserError(403, 'forbidden',{user: ctx.state.user, roles: Object.values(Roles)});
         } else {
             const profile: ProfileType = await ProfileModel
@@ -352,7 +352,7 @@ class ControllerHelpers {
 
     public static haseRoleMidleWare = async (ctx: ModifiedContext, next: Function, roles?: string[]) => {
         //const path = ctx.request.method + ctx.request.url.replace(/[a-f\d]{24}/gi, ':id');
-        if (ctx.state.user.profile.name === DefaultUserCreator.DEFAULT_PROFILE_NAME) return await next();
+        if (ctx.state.user.profile.name === DefaultUserCreator.ADMIN_USERNAME) return await next();
         const size: boolean = await ProfileModel.exists({
             name: ctx.state.user.profile.name, $or: roles.map(role => ({roles: {"$in": [role]}}))
         }).catch(() => null);
@@ -364,7 +364,7 @@ class ControllerHelpers {
     }
 
     public static haseRole = async (ctx: ModifiedContext, role: string): Promise<boolean> => {
-        if (ctx.state.user.profile.name === DefaultUserCreator.DEFAULT_PROFILE_NAME) return true;
+        if (ctx.state.user.profile.name === DefaultUserCreator.ADMIN_USERNAME) return true;
         const size: number = await ProfileModel.countDocuments({
             name: ctx.state.user.profile.name,
             roles: {"$in": [role]}

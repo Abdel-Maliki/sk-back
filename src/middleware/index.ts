@@ -49,10 +49,10 @@ class Middleware {
                         if (user && decodedToken.id && user._id.toString() === decodedToken.id.toString() && user.status === UserState.ACTIVE) {
                             ctx.state.user = user.toNormalization();
                             ctx.state.password = user.password;
-                            if (ctx.state.user.userName === DefaultUserCreator.DEFAULT_PROFILE_NAME)
+                            if (ctx.state.user.userName === DefaultUserCreator.ADMIN_USERNAME)
                                 ctx.state.user.profile = {
-                                    name: DefaultUserCreator.DEFAULT_PROFILE_NAME,
-                                    description: DefaultUserCreator.DEFAULT_PROFILE_NAME,
+                                    name: DefaultUserCreator.ADMIN_USERNAME,
+                                    description: DefaultUserCreator.ADMIN_USERNAME,
                                     roles: []
                                 }
                             UserModel.findByIdAndUpdate(user._id, {testAuthNumber: 0}).exec().then();
@@ -180,7 +180,7 @@ class Middleware {
     }
 
     public static haseRoleMidleWare = async (ctx: ModifiedContext, next: Function, roles: string[]) => {
-        if (ctx.state.user.profile.name === DefaultUserCreator.DEFAULT_PROFILE_NAME || !roles || roles.length === 0) return await next();
+        if (ctx.state.user.profile.name === DefaultUserCreator.ADMIN_USERNAME || !roles || roles.length === 0) return await next();
         const size: boolean = await ProfileModel.exists({
             name: ctx.state.user.profile.name, $or: roles.map(role => ({roles: {"$in": [role]}}))
         }).catch(() => null);

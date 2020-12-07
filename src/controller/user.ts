@@ -100,7 +100,7 @@ class UserController {
 
 
     public static adminCheck = async (ctx: ModifiedContext, next: Function) => {
-        if (ctx.request.body.userName.toLowerCase() === DefaultUserCreator.DEFAULT_PROFILE_NAME.toLowerCase()) {
+        if (ctx.request.body.userName.toLowerCase() === DefaultUserCreator.ADMIN_USERNAME.toLowerCase()) {
             return ctx.answerUserError(400, `Le nom d'utilisateur ne peut pas être admin`);
         } else {
             await next();
@@ -137,7 +137,7 @@ class UserController {
         const user: UserDocument = await UserModel.findById(ctx.request.params['id']).catch(() => null);
         console.log('Class: UserController, Function: ckeckExistingAndNotAdmin, Line 83 , user: '
             , user);
-        if (user && user.userName === DefaultUserCreator.DEFAULT_PROFILE_NAME) {
+        if (user && user.userName === DefaultUserCreator.ADMIN_USERNAME) {
             console.log('Class: UserController, Function: ckeckExistingAndNotAdmin, Line 88 , : '
                 ,);
             return ctx.answerUserError(400, `Impossible de ${action} l'utilisateur admin`);
@@ -194,7 +194,7 @@ class UserController {
     }
 
     public static ckeckAdminNotInList = async (ctx: ModifiedContext, next: Function, action: string) => {
-        const criteria: any = {_id: {$in: ctx.request.body}, userName: DefaultUserCreator.DEFAULT_PROFILE_NAME};
+        const criteria: any = {_id: {$in: ctx.request.body}, userName: DefaultUserCreator.ADMIN_USERNAME};
         const totalExisting: number = await UserModel.countDocuments(criteria).catch((e) => {
             return -1;
         });
@@ -255,7 +255,7 @@ class UserController {
     };
 
     public static currentUserData = async (ctx: ModifiedContext) => {
-        if (ctx.state.user.profile.name === DefaultUserCreator.DEFAULT_PROFILE_NAME) {
+        if (ctx.state.user.profile.name === DefaultUserCreator.ADMIN_USERNAME) {
             return ctx.answerSuccess(200, {user: ctx.state.user, roles: Object.values(Roles)});
         } else {
             const profile: ProfileType = await ProfileModel

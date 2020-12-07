@@ -1,7 +1,7 @@
 import {Joi as JOI, OutputValidation} from 'koa-joi-router';
 import {JoiObject, ObjectSchema, SchemaMap} from "joi";
 import {MessageError, ModifiedContext} from "index";
-import JoiMessageMapper from "joi-message-mapper.ts";
+import JoiMessageMapper from "../common/joi-message-mapper";
 import ProjectConstantes from "../constante/project-constantes";
 
 enum methods {

@@ -1,11 +1,10 @@
-import ROUTER, {Joi as JOI, Spec} from 'koa-joi-router';
+import ROUTER, {Handler, Joi as JOI, Spec} from 'koa-joi-router';
 import ROUTER_HELPER from './router-helper';
 import PROFILE_CONTROLLER from '../controller/profile-controller';
 import {ObjectSchema, SchemaMap} from "joi";
 import CONTROLLER_HELPERS from "../controller/controller-helpers";
 import {JwtFunctionResponse, ModifiedContext} from "index";
 import ProfileModel, {ProfileDocument, ProfileType} from './../model/profile';
-import {DefaultUserCreator} from "../service/default-user-creator";
 import ROUTE_PATH_HELPER from "./route-path-helper";
 import {RoutesPrefix} from "../constante/routes-prefix";
 import UserModel from './../model/user';
@@ -16,17 +15,13 @@ import LOG_CONSTANTE from "../constante/log-constante";
 class ProfileRouter {
 
     static readonly errorMessage = `Certaines profiles n'existent pas`;
+    static readonly profileNotFound = `Ce profile n'existent pas`;
 
     public static readonly NAME_VALIDATION = JOI.string().trim().min(3).max(ROUTER_HELPER.defaults.length).label("le nom du profile").required();
     public static readonly DESCRIPTION_VALIDATION = JOI.string().trim().allow('', null).max(ROUTER_HELPER.defaults.length).label("la description du profile").optional();
 
     private static readonly profileInput: ObjectSchema = JOI.object({
         name: ProfileRouter.NAME_VALIDATION,
-        description: ProfileRouter.DESCRIPTION_VALIDATION,
-    }).options({stripUnknown: true});
-
-    private static readonly createInput: ObjectSchema = JOI.object({
-        name: ProfileRouter.NAME_VALIDATION.not(DefaultUserCreator.DEFAULT_PROFILE_NAME),
         description: ProfileRouter.DESCRIPTION_VALIDATION,
     }).options({stripUnknown: true});
 
@@ -43,13 +38,31 @@ class ProfileRouter {
         validate: {
             continueOnError: true,
             type: ROUTER_HELPER.contentType.JSON,
-            body: JOI.object({entity: ProfileRouter.createInput}),
+            body: JOI.object({entity: ProfileRouter.profileInput}),
             output: ROUTER_HELPER.defaultOutput(JOI.object(ProfileRouter.profileOutput))
         },
         handler: [
             ROUTER_HELPER.validation,
-            PROFILE_CONTROLLER.beforeCreate,
+            ...ProfileRouter.createValidation(),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.create(ctx, ProfileModel),
+        ]
+    });
+
+    private static createAndGet: Spec = ({
+        method: ROUTER_HELPER.methods.POST,
+        path: ROUTE_PATH_HELPER.createAndGetPath(),
+        validate: {
+            continueOnError: true,
+            type: ROUTER_HELPER.contentType.JSON,
+            body: JOI.object({entity: ProfileRouter.profileInput, pagination: CONTROLLER_HELPERS.paginationInput}),
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
+        },
+        handler: [
+            ROUTER_HELPER.validation,
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next),
+            ...ProfileRouter.createValidation(),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.createAndNext(ctx, next, ProfileModel),
+            (ctx: ModifiedContext) => CONTROLLER_HELPERS.page<ProfileDocument, ProfileType>(ctx, ProfileModel, PROFILE_CONTROLLER.condition(ctx)),
         ]
     });
 
@@ -79,11 +92,29 @@ class ProfileRouter {
         },
         handler: [
             ROUTER_HELPER.validation,
-            (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.checkNameAndDescription(ctx, next),
-            (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.ckeckExistingAndNotAdmin(ctx, next, "modifier"),
+            ...ProfileRouter.updateValidation(),
             (ctx: ModifiedContext) => PROFILE_CONTROLLER.update(ctx),
         ]
-    });
+    })
+
+    private static updateAndGet: Spec = ({
+        method: ROUTER_HELPER.methods.PUT,
+        path: ROUTE_PATH_HELPER.updateAndGetPath(),
+        validate: {
+            continueOnError: true,
+            type: ROUTER_HELPER.contentType.JSON,
+            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
+            body: JOI.object({entity: ProfileRouter.profileInput, pagination: CONTROLLER_HELPERS.paginationInput}),
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
+        },
+        handler: [
+            ROUTER_HELPER.validation,
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next),
+            ...ProfileRouter.updateValidation(),
+            (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.update(ctx, next),
+            (ctx: ModifiedContext) => CONTROLLER_HELPERS.page<ProfileDocument, ProfileType>(ctx, ProfileModel, PROFILE_CONTROLLER.condition(ctx)),
+        ]
+    })
 
     private static delete: Spec = ({
         method: ROUTER_HELPER.methods.PUT,
@@ -95,13 +126,29 @@ class ProfileRouter {
         },
         handler: [
             ROUTER_HELPER.validation,
-            (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.ckeckExistingAndNotAdmin(ctx, next, "supprimer"),
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.checkRelation(ctx, next, UserModel, 'profile.id',
-                [ctx.request.params['id']], t => `ce profile est associé à ${t} utilisateur${t > 1 ? 's' : ''}`),
-            PROFILE_CONTROLLER.beforeDelete,
+            ...ProfileRouter.deleteValidation(),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.delete(ctx, ProfileModel),
         ]
-    });
+    })
+
+    private static deleteAndGet: Spec = ({
+        method: ROUTER_HELPER.methods.PUT,
+        path: ROUTE_PATH_HELPER.deleteAndGetPath(),
+        validate: {
+            continueOnError: true,
+            type: ROUTER_HELPER.contentType.JSON,
+            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
+            body: JOI.object({pagination: CONTROLLER_HELPERS.getPaginationInput()}),
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
+        },
+        handler: [
+            ROUTER_HELPER.validation,
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setPagination(ctx, next),
+            ...ProfileRouter.deleteValidation(),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.deleteAndNext(ctx, next, ProfileModel),
+            (ctx: ModifiedContext) => CONTROLLER_HELPERS.page<ProfileDocument, ProfileType>(ctx, ProfileModel, PROFILE_CONTROLLER.condition(ctx)),
+        ]
+    })
 
     private static all: Spec = ({
         method: ROUTER_HELPER.methods.PUT,
@@ -127,14 +174,10 @@ class ProfileRouter {
         },
         handler: [
             ROUTER_HELPER.validation,
-            (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.ckeckAdminNotInList(ctx, next),
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, ProfileModel, '_id', ctx.request.body, ctx.request.body.length, ProfileRouter.errorMessage),
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.checkRelation(ctx, next, UserModel, 'profile.id',
-                ctx.request.body, t => `ces profiles sont associé à ${t} utilisateur${t > 1 ? 's' : ''}`),
+            ...ProfileRouter.deleteAllValidation(),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.deleteAll(ctx, ProfileModel),
         ]
-    });
-
+    })
 
     private static deleteAllAndGet: Spec = ({
         method: ROUTER_HELPER.methods.PUT,
@@ -151,73 +194,11 @@ class ProfileRouter {
         handler: [
             ROUTER_HELPER.validation,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next, 'ids'),
-            (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.ckeckAdminNotInList(ctx, next),
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, ProfileModel, '_id', ctx.request.body, ctx.request.body.length, ProfileRouter.errorMessage),
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.checkRelation(ctx, next, UserModel, 'profile.id',
-                ctx.request.body, t => `ces profiles sont associé à ${t} utilisateur${t > 1 ? 's' : ''}`),
+            ...ProfileRouter.deleteAllValidation(),
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.deleteAll(ctx, ProfileModel, next),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.page<ProfileDocument, ProfileType>(ctx, ProfileModel, PROFILE_CONTROLLER.condition(ctx)),
         ]
     });
-
-    private static createAndGet: Spec = ({
-        method: ROUTER_HELPER.methods.POST,
-        path: ROUTE_PATH_HELPER.createAndGetPath(),
-        validate: {
-            continueOnError: true,
-            type: ROUTER_HELPER.contentType.JSON,
-            body: JOI.object({entity: ProfileRouter.createInput, pagination: CONTROLLER_HELPERS.paginationInput}),
-            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
-        },
-        handler: [
-            ROUTER_HELPER.validation,
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next),
-            PROFILE_CONTROLLER.beforeCreate,
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.createAndNext(ctx, next, ProfileModel),
-            (ctx: ModifiedContext) => CONTROLLER_HELPERS.page<ProfileDocument, ProfileType>(ctx, ProfileModel, PROFILE_CONTROLLER.condition(ctx)),
-        ]
-    });
-
-    private static updateAndGet: Spec = ({
-        method: ROUTER_HELPER.methods.PUT,
-        path: ROUTE_PATH_HELPER.updateAndGetPath(),
-        validate: {
-            continueOnError: true,
-            type: ROUTER_HELPER.contentType.JSON,
-            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
-            body: JOI.object({entity: ProfileRouter.profileInput, pagination: CONTROLLER_HELPERS.paginationInput}),
-            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
-        },
-        handler: [
-            ROUTER_HELPER.validation,
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next),
-            (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.checkNameAndDescription(ctx, next),
-            (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.ckeckExistingAndNotAdmin(ctx, next, "modifier"),
-            (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.update(ctx, next),
-            (ctx: ModifiedContext) => CONTROLLER_HELPERS.page<ProfileDocument, ProfileType>(ctx, ProfileModel, PROFILE_CONTROLLER.condition(ctx)),
-        ]
-    });
-
-    private static deleteAndGet: Spec = ({
-        method: ROUTER_HELPER.methods.PUT,
-        path: ROUTE_PATH_HELPER.deleteAndGetPath(),
-        validate: {
-            continueOnError: true,
-            type: ROUTER_HELPER.contentType.JSON,
-            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
-            body: JOI.object({pagination: CONTROLLER_HELPERS.getPaginationInput()}),
-            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
-        },
-        handler: [
-            ROUTER_HELPER.validation,
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setPagination(ctx, next),
-            (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.ckeckExistingAndNotAdmin(ctx, next, "supprimer"),
-            PROFILE_CONTROLLER.beforeDelete,
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.deleteAndNext(ctx, next, ProfileModel),
-            (ctx: ModifiedContext) => CONTROLLER_HELPERS.page<ProfileDocument, ProfileType>(ctx, ProfileModel, PROFILE_CONTROLLER.condition(ctx)),
-        ]
-    });
-
 
     private static page: Spec = ({
         method: ROUTER_HELPER.methods.POST,
@@ -232,22 +213,6 @@ class ProfileRouter {
             ROUTER_HELPER.validation,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setPagination(ctx, next),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.page(ctx, ProfileModel, PROFILE_CONTROLLER.condition(ctx)),
-        ]
-    });
-
-    private static search: Spec = ({
-        method: ROUTER_HELPER.methods.PUT,
-        path: ROUTE_PATH_HELPER.searchPath(),
-        validate: {
-            continueOnError: true,
-            type: ROUTER_HELPER.contentType.JSON,
-            body: JOI.object({global: JOI.string().optional()}),
-            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput))
-        },
-
-        handler: [
-            ROUTER_HELPER.validation,
-            (ctx: ModifiedContext) => CONTROLLER_HELPERS.search(ctx, ProfileModel, PROFILE_CONTROLLER.condition(ctx)),
         ]
     });
 
@@ -275,16 +240,17 @@ class ProfileRouter {
             params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
             body: JOI.object({
                 others: JOI.object({password: JOI.string().required()}),
-                roles: JOI.array().unique().allow([]).items(JOI.string()).label("roles ")}),
+                roles: JOI.array().unique().allow([]).items(JOI.string()).label("roles ")
+            }),
             output: ROUTER_HELPER.defaultOutput(JOI.array().empty())
         },
         handler: [
             ROUTER_HELPER.validation,
             CONTROLLER_HELPERS.checkPassword,
-            (ctx: ModifiedContext, next: Function) =>  CONTROLLER_HELPERS.dispatch(ctx, next, "roles"),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next, "roles"),
             (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.validateRoles(ctx, next),
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, ProfileModel,
-                '_id', [ctx.request.params['id']], 1, `Le profile ${ctx.request.params['id']} n'existe pas`),
+                '_id', [ctx.request.params['id']], 1, ProfileRouter.profileNotFound),
             (ctx: ModifiedContext) => PROFILE_CONTROLLER.setRoles(ctx),
         ]
     });
@@ -313,22 +279,54 @@ class ProfileRouter {
 
     public static routes(jwtMiddleware: JwtFunctionResponse): ROUTER.Router[] {
         return [
-                CONTROLLER_HELPERS.buildRouter(ProfileRouter.create, [ROLES.ADD_PROFILE], LOG_CONSTANTE.ADD_PROFILE, RoutesPrefix.profile, jwtMiddleware),
-                CONTROLLER_HELPERS.buildRouter(ProfileRouter.createAndGet, [ROLES.ADD_PROFILE], LOG_CONSTANTE.ADD_PROFILE, RoutesPrefix.profile, jwtMiddleware),
-                CONTROLLER_HELPERS.buildRouter(ProfileRouter.update, [ROLES.EDIT_PROFILE], LOG_CONSTANTE.EDIT_PROFILE, RoutesPrefix.profile, jwtMiddleware),
-                CONTROLLER_HELPERS.buildRouter(ProfileRouter.updateAndGet, [ROLES.EDIT_PROFILE], LOG_CONSTANTE.EDIT_PROFILE, RoutesPrefix.profile, jwtMiddleware),
-                CONTROLLER_HELPERS.buildRouter(ProfileRouter.delete, [ROLES.DELETE_PROFILE], LOG_CONSTANTE.DELETE_PROFILE, RoutesPrefix.profile, jwtMiddleware),
-                CONTROLLER_HELPERS.buildRouter(ProfileRouter.deleteAndGet, [ROLES.DELETE_PROFILE], LOG_CONSTANTE.DELETE_PROFILE, RoutesPrefix.profile, jwtMiddleware),
-                CONTROLLER_HELPERS.buildRouter(ProfileRouter.deleteAll, [ROLES.DELETE_PROFILE], LOG_CONSTANTE.DELETE_MULTIPLE_PROFILE, RoutesPrefix.profile, jwtMiddleware),
-                CONTROLLER_HELPERS.buildRouter(ProfileRouter.deleteAllAndGet, [ROLES.DELETE_PROFILE], LOG_CONSTANTE.DELETE_MULTIPLE_PROFILE, RoutesPrefix.profile, jwtMiddleware),
-                CONTROLLER_HELPERS.buildRouter(ProfileRouter.read, [ROLES.READ_PROFILE, ROLES.DELETE_PROFILE, ROLES.ADD_PROFILE, ROLES.EDIT_PROFILE, ROLES.AFFECT_PROFILE_ROLE], LOG_CONSTANTE.READ_PROFILE, RoutesPrefix.profile, jwtMiddleware),
-                CONTROLLER_HELPERS.buildRouter(ProfileRouter.page, [ROLES.READ_PROFILE, ROLES.DELETE_PROFILE, ROLES.ADD_PROFILE, ROLES.EDIT_PROFILE, ROLES.AFFECT_PROFILE_ROLE], LOG_CONSTANTE.PAGE_PROFILE, RoutesPrefix.profile, jwtMiddleware),
-                CONTROLLER_HELPERS.buildRouter(ProfileRouter.all, [ROLES.READ_PROFILE, ROLES.DELETE_PROFILE, ROLES.ADD_PROFILE, ROLES.EDIT_PROFILE, ROLES.AFFECT_PROFILE_ROLE], LOG_CONSTANTE.LISTER_PROFILE, RoutesPrefix.profile, jwtMiddleware),
-                CONTROLLER_HELPERS.buildRouter(ProfileRouter.search, [ROLES.READ_PROFILE, ROLES.DELETE_PROFILE, ROLES.ADD_PROFILE, ROLES.EDIT_PROFILE, ROLES.AFFECT_PROFILE_ROLE], LOG_CONSTANTE.FILTER_PROFILE, RoutesPrefix.profile, jwtMiddleware),
-                CONTROLLER_HELPERS.buildRouter(ProfileRouter.getRoles, [ROLES.AFFECT_PROFILE_ROLE], LOG_CONSTANTE.READ_PROFILE_ROLE, RoutesPrefix.profile, jwtMiddleware),
-                CONTROLLER_HELPERS.buildRouter(ProfileRouter.setRoles, [ROLES.AFFECT_PROFILE_ROLE], LOG_CONSTANTE.AFFECT_PROFILE_ROLE, RoutesPrefix.profile, jwtMiddleware),
-            ];
+            CONTROLLER_HELPERS.buildRouter(ProfileRouter.create, [ROLES.ADD_PROFILE], LOG_CONSTANTE.ADD_PROFILE, RoutesPrefix.profile, jwtMiddleware),
+            CONTROLLER_HELPERS.buildRouter(ProfileRouter.createAndGet, [ROLES.ADD_PROFILE], LOG_CONSTANTE.ADD_PROFILE, RoutesPrefix.profile, jwtMiddleware),
+            CONTROLLER_HELPERS.buildRouter(ProfileRouter.update, [ROLES.EDIT_PROFILE], LOG_CONSTANTE.EDIT_PROFILE, RoutesPrefix.profile, jwtMiddleware),
+            CONTROLLER_HELPERS.buildRouter(ProfileRouter.updateAndGet, [ROLES.EDIT_PROFILE], LOG_CONSTANTE.EDIT_PROFILE, RoutesPrefix.profile, jwtMiddleware),
+            CONTROLLER_HELPERS.buildRouter(ProfileRouter.delete, [ROLES.DELETE_PROFILE], LOG_CONSTANTE.DELETE_PROFILE, RoutesPrefix.profile, jwtMiddleware),
+            CONTROLLER_HELPERS.buildRouter(ProfileRouter.deleteAndGet, [ROLES.DELETE_PROFILE], LOG_CONSTANTE.DELETE_PROFILE, RoutesPrefix.profile, jwtMiddleware),
+            CONTROLLER_HELPERS.buildRouter(ProfileRouter.deleteAll, [ROLES.DELETE_PROFILE], LOG_CONSTANTE.DELETE_MULTIPLE_PROFILE, RoutesPrefix.profile, jwtMiddleware),
+            CONTROLLER_HELPERS.buildRouter(ProfileRouter.deleteAllAndGet, [ROLES.DELETE_PROFILE], LOG_CONSTANTE.DELETE_MULTIPLE_PROFILE, RoutesPrefix.profile, jwtMiddleware),
+            CONTROLLER_HELPERS.buildRouter(ProfileRouter.read, [ROLES.READ_PROFILE, ROLES.DELETE_PROFILE, ROLES.ADD_PROFILE, ROLES.EDIT_PROFILE, ROLES.AFFECT_PROFILE_ROLE], LOG_CONSTANTE.READ_PROFILE, RoutesPrefix.profile, jwtMiddleware),
+            CONTROLLER_HELPERS.buildRouter(ProfileRouter.page, [ROLES.READ_PROFILE, ROLES.DELETE_PROFILE, ROLES.ADD_PROFILE, ROLES.EDIT_PROFILE, ROLES.AFFECT_PROFILE_ROLE], LOG_CONSTANTE.PAGE_PROFILE, RoutesPrefix.profile, jwtMiddleware),
+            CONTROLLER_HELPERS.buildRouter(ProfileRouter.all, [ROLES.READ_PROFILE, ROLES.DELETE_PROFILE, ROLES.ADD_PROFILE, ROLES.EDIT_PROFILE, ROLES.AFFECT_PROFILE_ROLE], LOG_CONSTANTE.LISTER_PROFILE, RoutesPrefix.profile, jwtMiddleware),
+            CONTROLLER_HELPERS.buildRouter(ProfileRouter.getRoles, [ROLES.AFFECT_PROFILE_ROLE], LOG_CONSTANTE.READ_PROFILE_ROLE, RoutesPrefix.profile, jwtMiddleware),
+            CONTROLLER_HELPERS.buildRouter(ProfileRouter.setRoles, [ROLES.AFFECT_PROFILE_ROLE], LOG_CONSTANTE.AFFECT_PROFILE_ROLE, RoutesPrefix.profile, jwtMiddleware),
+        ];
     }
+
+    private static deleteAllValidation(): Handler[] {
+        return [
+            // (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.ckeckAdminNotInList(ctx, next),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, ProfileModel, '_id', ctx.request.body, ctx.request.body.length, ProfileRouter.errorMessage),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.checkRelation(ctx, next, UserModel, 'profile.id',
+                ctx.request.body, size => `ces profiles sont associé à ${size} utilisateur${size > 1 ? 's' : ''}`),
+        ];
+    }
+
+    private static deleteValidation(): Handler[] {
+        return [
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, ProfileModel, '_id', [ctx.request.params['id']], 1, ProfileRouter.profileNotFound),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.checkRelation(ctx, next, UserModel, 'profile.id',
+                [ctx.request.params['id']], size => `ce profile est associé à ${size} utilisateur${size > 1 ? 's' : ''}`),
+        ];
+    }
+
+    private static createValidation(): Handler[] {
+        return [
+            PROFILE_CONTROLLER.beforeCreate,
+        ];
+    }
+
+    private static updateValidation(): Handler[] {
+        return [
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, ProfileModel, '_id', [ctx.request.params['id']], 1, ProfileRouter.profileNotFound),
+            PROFILE_CONTROLLER.beforeUpdate,
+        ];
+    }
+
+
+
 
 }
 
