@@ -37,8 +37,6 @@ export class Mail {
 
         return  await transporter.sendMail(mailOptions)
             .catch(reason => {
-                console.log('Class: Mail, Function: , Line 39 reason(): '
-                    , reason);
                 return null;
             });
 

@@ -11,6 +11,7 @@ import MONGOOSE from "mongoose";
 import Mail from "../service/mail";
 import config from "../configs/config";
 import {SentMessageInfo} from "nodemailer";
+import ProjectConstantes from "../constante/project-constantes";
 
 /**
  * @param firstName - A valid string that has already been validated by JOI
@@ -67,18 +68,16 @@ class UserController {
     public static forgotPasswordFinalisation = async (ctx: ModifiedContext) => {
 
         const payload: any = await ctx.jwt.decode(ctx.request.body.token);
-        const mongoObjectRegEx = /^[a-f\d]{24}$/i;
-        let dbUser: UserDocument = null;
-        if (payload && payload.hasOwnProperty('id') && typeof payload.id === 'string' && mongoObjectRegEx.test(payload.id)) {
-            dbUser = await UserModel.findById(payload.id).exec().catch(() => null);
-            if (!dbUser) return ctx.answerUserError(401, Responses.INVALID_CREDS);
+        let user: UserDocument = null;
+        if (payload && payload.hasOwnProperty('id') && typeof payload.id === 'string' && ProjectConstantes.mongoObjectRegEx.test(payload.id)) {
+            user = await UserModel.findById(payload.id).exec().catch(() => null);
+            if (!user) return ctx.answerUserError(401, Responses.INVALID_CREDS);
         } else {
             return ctx.answerUserError(401, Responses.INVALID_CREDS);
         }
 
-        const userId: {id: string} = await ctx.jwt.verify(ctx.request.body.token, ctx.jwt.secret + dbUser.password).catch(() => null);
+        const userId: {id: string} = await ctx.jwt.verify(ctx.request.body.token, ctx.jwt.secret + user.password).catch(() => null);
         if (!userId || !userId.id)  return ctx.answerUserError(401, 'invalid token');
-        const user: UserDocument = await UserModel.findById(userId.id).catch(() => null);
         if (!user) return ctx.answerUserError(400, `Cet utiliateur n'existe pas`);
         if (user.status === UserState.DESACTIVE){
             return ctx.answerUserError(401, "Votre compte a été désactivé contactez l'administrateur de votre système");

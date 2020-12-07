@@ -1,12 +1,12 @@
 import ROUTER, {Joi as JOI, Spec} from 'koa-joi-router';
-import HELPER from './helper';
+import ROUTER_HELPER from './router-helper';
 import PROFILE_CONTROLLER from '../controller/profile-controller';
 import {ObjectSchema, SchemaMap} from "joi";
 import CONTROLLER_HELPERS from "../controller/controller-helpers";
-import {JwtFunctionResponse, ModifiedContext, RoutesData} from "index";
+import {JwtFunctionResponse, ModifiedContext} from "index";
 import ProfileModel, {ProfileDocument, ProfileType} from './../model/profile';
 import {DefaultUserCreator} from "../service/default-user-creator";
-import ROUTER_HELPER from "./router-helper";
+import ROUTE_PATH_HELPER from "./route-path-helper";
 import {RoutesPrefix} from "../constante/routes-prefix";
 import UserModel from './../model/user';
 import ROLES from "../constante/roles";
@@ -17,8 +17,8 @@ class ProfileRouter {
 
     static readonly errorMessage = `Certaines profiles n'existent pas`;
 
-    public static readonly NAME_VALIDATION = JOI.string().trim().min(3).max(HELPER.defaults.length).label("le nom du profile").required();
-    public static readonly DESCRIPTION_VALIDATION = JOI.string().trim().allow('', null).max(HELPER.defaults.length).label("la description du profile").optional();
+    public static readonly NAME_VALIDATION = JOI.string().trim().min(3).max(ROUTER_HELPER.defaults.length).label("le nom du profile").required();
+    public static readonly DESCRIPTION_VALIDATION = JOI.string().trim().allow('', null).max(ROUTER_HELPER.defaults.length).label("la description du profile").optional();
 
     private static readonly profileInput: ObjectSchema = JOI.object({
         name: ProfileRouter.NAME_VALIDATION,
@@ -31,54 +31,54 @@ class ProfileRouter {
     }).options({stripUnknown: true});
 
     private static readonly profileOutput: SchemaMap = {
-        id: JOI.string().regex(HELPER.mongoObjectRegEx).required(),
+        id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx).required(),
         name: JOI.string().required(),
         description: JOI.string().allow('', null).optional(),
         createdAt: JOI.date(),
     };
 
     private static create: Spec = ({
-        method: HELPER.methods.POST,
-        path: ROUTER_HELPER.createPath(),
+        method: ROUTER_HELPER.methods.POST,
+        path: ROUTE_PATH_HELPER.createPath(),
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
+            type: ROUTER_HELPER.contentType.JSON,
             body: JOI.object({entity: ProfileRouter.createInput}),
-            output: HELPER.defaultOutput(JOI.object(ProfileRouter.profileOutput))
+            output: ROUTER_HELPER.defaultOutput(JOI.object(ProfileRouter.profileOutput))
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             PROFILE_CONTROLLER.beforeCreate,
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.create(ctx, ProfileModel),
         ]
     });
 
     private static read: Spec = ({
-        method: HELPER.methods.PUT,
-        path: ROUTER_HELPER.readPath(),
+        method: ROUTER_HELPER.methods.PUT,
+        path: ROUTE_PATH_HELPER.readPath(),
         validate: {
             continueOnError: true,
-            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
-            output: HELPER.defaultOutput(JOI.object(ProfileRouter.profileOutput))
+            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
+            output: ROUTER_HELPER.defaultOutput(JOI.object(ProfileRouter.profileOutput))
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.read(ctx, ProfileModel),
         ]
     });
 
     private static update: Spec = ({
-        method: HELPER.methods.PUT,
-        path: ROUTER_HELPER.updatePath(),
+        method: ROUTER_HELPER.methods.PUT,
+        path: ROUTE_PATH_HELPER.updatePath(),
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
-            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
+            type: ROUTER_HELPER.contentType.JSON,
+            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
             body: JOI.object({entity: ProfileRouter.profileInput}),
-            output: HELPER.defaultOutput(JOI.object(ProfileRouter.profileOutput))
+            output: ROUTER_HELPER.defaultOutput(JOI.object(ProfileRouter.profileOutput))
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.checkNameAndDescription(ctx, next),
             (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.ckeckExistingAndNotAdmin(ctx, next, "modifier"),
             (ctx: ModifiedContext) => PROFILE_CONTROLLER.update(ctx),
@@ -86,15 +86,15 @@ class ProfileRouter {
     });
 
     private static delete: Spec = ({
-        method: HELPER.methods.PUT,
-        path: ROUTER_HELPER.deletePath(),
+        method: ROUTER_HELPER.methods.PUT,
+        path: ROUTE_PATH_HELPER.deletePath(),
         validate: {
             continueOnError: true,
-            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
-            output: HELPER.defaultOutput(JOI.object(ProfileRouter.profileOutput))
+            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
+            output: ROUTER_HELPER.defaultOutput(JOI.object(ProfileRouter.profileOutput))
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.ckeckExistingAndNotAdmin(ctx, next, "supprimer"),
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.checkRelation(ctx, next, UserModel, 'profile.id',
                 [ctx.request.params['id']], t => `ce profile est associé à ${t} utilisateur${t > 1 ? 's' : ''}`),
@@ -104,29 +104,29 @@ class ProfileRouter {
     });
 
     private static all: Spec = ({
-        method: HELPER.methods.PUT,
-        path: ROUTER_HELPER.allPath(),
+        method: ROUTER_HELPER.methods.PUT,
+        path: ROUTE_PATH_HELPER.allPath(),
         validate: {
             continueOnError: true,
-            output: HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput))
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput))
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.all(ctx, ProfileModel),
         ]
     });
 
     private static deleteAll: Spec = ({
-        method: HELPER.methods.PUT,
-        path: ROUTER_HELPER.deleteAllPath(),
+        method: ROUTER_HELPER.methods.PUT,
+        path: ROUTE_PATH_HELPER.deleteAllPath(),
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
-            body: JOI.object({ids: JOI.array().items(JOI.string().regex(HELPER.mongoObjectRegEx)).min(1)}),
-            output: HELPER.defaultOutput(JOI.empty())
+            type: ROUTER_HELPER.contentType.JSON,
+            body: JOI.object({ids: JOI.array().items(JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)).min(1)}),
+            output: ROUTER_HELPER.defaultOutput(JOI.empty())
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.ckeckAdminNotInList(ctx, next),
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, ProfileModel, '_id', ctx.request.body, ctx.request.body.length, ProfileRouter.errorMessage),
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.checkRelation(ctx, next, UserModel, 'profile.id',
@@ -137,19 +137,19 @@ class ProfileRouter {
 
 
     private static deleteAllAndGet: Spec = ({
-        method: HELPER.methods.PUT,
-        path: ROUTER_HELPER.deleteAllAndGetPath(),
+        method: ROUTER_HELPER.methods.PUT,
+        path: ROUTE_PATH_HELPER.deleteAllAndGetPath(),
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
+            type: ROUTER_HELPER.contentType.JSON,
             body: JOI.object({
-                ids: JOI.array().items(JOI.string().regex(HELPER.mongoObjectRegEx)).min(1),
+                ids: JOI.array().items(JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)).min(1),
                 pagination: CONTROLLER_HELPERS.paginationInput
             }),
-            output: HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next, 'ids'),
             (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.ckeckAdminNotInList(ctx, next),
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, ProfileModel, '_id', ctx.request.body, ctx.request.body.length, ProfileRouter.errorMessage),
@@ -161,16 +161,16 @@ class ProfileRouter {
     });
 
     private static createAndGet: Spec = ({
-        method: HELPER.methods.POST,
-        path: ROUTER_HELPER.createAndGetPath(),
+        method: ROUTER_HELPER.methods.POST,
+        path: ROUTE_PATH_HELPER.createAndGetPath(),
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
+            type: ROUTER_HELPER.contentType.JSON,
             body: JOI.object({entity: ProfileRouter.createInput, pagination: CONTROLLER_HELPERS.paginationInput}),
-            output: HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next),
             PROFILE_CONTROLLER.beforeCreate,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.createAndNext(ctx, next, ProfileModel),
@@ -179,17 +179,17 @@ class ProfileRouter {
     });
 
     private static updateAndGet: Spec = ({
-        method: HELPER.methods.PUT,
-        path: ROUTER_HELPER.updateAndGetPath(),
+        method: ROUTER_HELPER.methods.PUT,
+        path: ROUTE_PATH_HELPER.updateAndGetPath(),
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
-            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
+            type: ROUTER_HELPER.contentType.JSON,
+            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
             body: JOI.object({entity: ProfileRouter.profileInput, pagination: CONTROLLER_HELPERS.paginationInput}),
-            output: HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next),
             (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.checkNameAndDescription(ctx, next),
             (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.ckeckExistingAndNotAdmin(ctx, next, "modifier"),
@@ -199,17 +199,17 @@ class ProfileRouter {
     });
 
     private static deleteAndGet: Spec = ({
-        method: HELPER.methods.PUT,
-        path: ROUTER_HELPER.deleteAndGetPath(),
+        method: ROUTER_HELPER.methods.PUT,
+        path: ROUTE_PATH_HELPER.deleteAndGetPath(),
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
-            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
+            type: ROUTER_HELPER.contentType.JSON,
+            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
             body: JOI.object({pagination: CONTROLLER_HELPERS.getPaginationInput()}),
-            output: HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setPagination(ctx, next),
             (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.ckeckExistingAndNotAdmin(ctx, next, "supprimer"),
             PROFILE_CONTROLLER.beforeDelete,
@@ -220,66 +220,66 @@ class ProfileRouter {
 
 
     private static page: Spec = ({
-        method: HELPER.methods.POST,
-        path: ROUTER_HELPER.pagePath(),
+        method: ROUTER_HELPER.methods.POST,
+        path: ROUTE_PATH_HELPER.pagePath(),
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
+            type: ROUTER_HELPER.contentType.JSON,
             body: JOI.object({pagination: CONTROLLER_HELPERS.getPaginationInput()}),
-            output: HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput), true)
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setPagination(ctx, next),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.page(ctx, ProfileModel, PROFILE_CONTROLLER.condition(ctx)),
         ]
     });
 
     private static search: Spec = ({
-        method: HELPER.methods.PUT,
-        path: ROUTER_HELPER.searchPath(),
+        method: ROUTER_HELPER.methods.PUT,
+        path: ROUTE_PATH_HELPER.searchPath(),
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
+            type: ROUTER_HELPER.contentType.JSON,
             body: JOI.object({global: JOI.string().optional()}),
-            output: HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput))
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ProfileRouter.profileOutput))
         },
 
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.search(ctx, ProfileModel, PROFILE_CONTROLLER.condition(ctx)),
         ]
     });
 
     private static getRoles: Spec = ({
-        method: HELPER.methods.GET,
+        method: ROUTER_HELPER.methods.GET,
         path: `/roles/:id`,
         validate: {
-            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
+            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
             continueOnError: true,
-            output: HELPER.defaultOutput(JOI.array().items(JOI.string()))
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(JOI.string()))
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             (ctx: ModifiedContext) => PROFILE_CONTROLLER.roles(ctx),
         ]
     });
 
 
     private static setRoles: Spec = ({
-        method: HELPER.methods.PUT,
+        method: ROUTER_HELPER.methods.PUT,
         path: `/set-roles/:id`,
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
-            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
+            type: ROUTER_HELPER.contentType.JSON,
+            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
             body: JOI.object({
                 others: JOI.object({password: JOI.string().required()}),
                 roles: JOI.array().unique().allow([]).items(JOI.string()).label("roles ")}),
-            output: HELPER.defaultOutput(JOI.array().empty())
+            output: ROUTER_HELPER.defaultOutput(JOI.array().empty())
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             CONTROLLER_HELPERS.checkPassword,
             (ctx: ModifiedContext, next: Function) =>  CONTROLLER_HELPERS.dispatch(ctx, next, "roles"),
             (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.validateRoles(ctx, next),

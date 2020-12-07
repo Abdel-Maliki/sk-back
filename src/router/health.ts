@@ -1,11 +1,11 @@
 import {Joi as JOI, Spec } from 'koa-joi-router';
 
-import HELPER from './helper';
+import ROUTER_HELPER from './router-helper';
 import HEALTH_CONTROLLER from '../controller/health';
 
 class HealthRouter {
   public static read:Spec = ({
-    method: HELPER.methods.GET,
+    method: ROUTER_HELPER.methods.GET,
     path: '/health',
     handler: HEALTH_CONTROLLER.read,
     validate: {

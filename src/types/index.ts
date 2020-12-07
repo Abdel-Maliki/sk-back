@@ -12,8 +12,18 @@ import ROUTER from "koa-joi-router";
  * @param port - A Port to run the server on
  * @param mongo_uri - The mongo uri mongo://127.0.0.1:27017/test
  * @param jwt_secret - The secret JWT uses to create a signature for the payload
+ * @param enterprise_email
+ * @param enterprise_email_service
+ * @param enterprise_email_password
  */
-type ConfigServerType = { port: number, mongo_uri: string, jwt_secret: string };
+type ConfigServerType = {
+    port: number,
+    mongo_uri: string,
+    jwt_secret: string,
+    enterprise_email: string,
+    enterprise_email_service: string,
+    enterprise_email_password: string,
+};
 
 /**
  * @remarks
@@ -70,7 +80,7 @@ enum Responses {
 interface ModifiedContext extends Context {
     jwt?: JWT;
     invalid?: any;
-    answerSuccess?: (status: 200| 201 , body: any, pagination?: Pagination) => ModifiedContext;
+    answerSuccess?: (status: 200 | 201, body: any, pagination?: Pagination) => ModifiedContext;
     answerUserError?: (status: 400 | 401 | 402 | 403 | 404 | 412, errorMessage: string, body?: any) => ModifiedContext;
     answerServerError?: () => ModifiedContext;
     pagination?: Pagination;
@@ -80,6 +90,12 @@ interface ModifiedContext extends Context {
 
 type RoutesData = { routes: ROUTER.Router[], prefix: string };
 
+type Nullable<T> = T | null | undefined;
+
+type NonNullable<T> = T extends null | undefined ? never : T;
+
+type Primitive = number | string | boolean | null | undefined;
+
 
 export {
     ConfigServerType,
@@ -88,5 +104,8 @@ export {
     JwtFunctionResponse,
     ModifiedContext,
     MessageError,
-    RoutesData
+    RoutesData,
+    Nullable,
+    NonNullable,
+    Primitive
 };

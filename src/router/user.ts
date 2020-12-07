@@ -1,11 +1,11 @@
 import ROUTER, {Handler, Joi as JOI, Spec} from 'koa-joi-router';
-import HELPER from './helper';
+import ROUTER_HELPER from './router-helper';
 import USER_CONTROLLER from '../controller/user';
 import {JwtFunctionResponse, ModifiedContext} from "index";
 import CONTROLLER_HELPERS from "../controller/controller-helpers";
 import UserModel, {UserDocument, UserState, UserType} from './../model/user';
 import PROFILE_CONTROLLER from "../controller/profile-controller";
-import ROUTER_HELPER from "./router-helper";
+import ROUTE_PATH_HELPER from "./route-path-helper";
 import {RoutesPrefix} from "../constante/routes-prefix";
 import ROLES from "../constante/roles";
 import Roles from "../constante/roles";
@@ -14,52 +14,52 @@ import LOG_CONSTANTE from "../constante/log-constante";
 
 class UserRouter {
 
-    public static NAME_VALIDATION = JOI.string().max(HELPER.defaults.length).label("le nom").required();
+    public static NAME_VALIDATION = JOI.string().max(ROUTER_HELPER.defaults.length).label("le nom").required();
     public static EMAIL_NAME_VALIDATION = JOI.string().lowercase().email().required();
-    public static PASSWORD_NAME_VALIDATION = JOI.string().min(2).max(HELPER.defaults.length).label("le mot de passe").required();
-    public static USERNAME_VALIDATION = JOI.string().min(2).max(HELPER.defaults.length).label("le nom d'utilisateur").required();
-    public static PROFILE_VALIDATION = JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)});
+    public static PASSWORD_NAME_VALIDATION = JOI.string().min(2).max(ROUTER_HELPER.defaults.length).label("le mot de passe").required();
+    public static USERNAME_VALIDATION = JOI.string().min(2).max(ROUTER_HELPER.defaults.length).label("le nom d'utilisateur").required();
+    public static PROFILE_VALIDATION = JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)});
 
     public static read: Spec = ({
-        method: HELPER.methods.GET,
-        path: ROUTER_HELPER.readPath(),
+        method: ROUTER_HELPER.methods.GET,
+        path: ROUTE_PATH_HELPER.readPath(),
         validate: {
-            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
+            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
             continueOnError: true,
-            output: HELPER.defaultOutput(JOI.object(HELPER.userOutput))
+            output: ROUTER_HELPER.defaultOutput(JOI.object(ROUTER_HELPER.userOutput))
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.read(ctx, UserModel)
         ]
     });
 
     public static allUsernames: Spec = ({
-        method: HELPER.methods.GET,
+        method: ROUTER_HELPER.methods.GET,
         path: '/all-user-name',
         validate: {
             continueOnError: true,
-            output: HELPER.defaultOutput(JOI.array().items(JOI.string()))
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(JOI.string()))
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             USER_CONTROLLER.allUserNames,
         ]
     });
 
 
     public static activateAccount: Spec = ({
-        method: HELPER.methods.PUT,
+        method: ROUTER_HELPER.methods.PUT,
         path: '/activate/:id',
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
-            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
+            type: ROUTER_HELPER.contentType.JSON,
+            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
             body: JOI.object({others: JOI.object({password: JOI.string().required()}), pagination: CONTROLLER_HELPERS.paginationInput}),
-            output: HELPER.defaultOutput(JOI.array().items(HELPER.userOutput), true)
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ROUTER_HELPER.userOutput), true)
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             CONTROLLER_HELPERS.checkPassword,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setPagination(ctx, next),
             (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.ckeckExistingAndNotAdmin(ctx, next, "modifer"),
@@ -68,17 +68,17 @@ class UserRouter {
         ]
     })
     public static disableAccount: Spec = ({
-        method: HELPER.methods.PUT,
+        method: ROUTER_HELPER.methods.PUT,
         path: '/disable/:id',
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
-            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
+            type: ROUTER_HELPER.contentType.JSON,
+            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
             body: JOI.object({others: JOI.object({password: JOI.string().required()}), pagination: CONTROLLER_HELPERS.paginationInput}),
-            output: HELPER.defaultOutput(JOI.array().items(HELPER.userOutput), true)
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ROUTER_HELPER.userOutput), true)
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             CONTROLLER_HELPERS.checkPassword,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setPagination(ctx, next),
             (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.ckeckExistingAndNotAdmin(ctx, next, "modifer"),
@@ -87,20 +87,20 @@ class UserRouter {
         ]
     })
     public static activateAllAccount: Spec = ({
-        method: HELPER.methods.PUT,
+        method: ROUTER_HELPER.methods.PUT,
         path: '/activate-all',
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
+            type: ROUTER_HELPER.contentType.JSON,
             body: JOI.object({
-                ids: JOI.array().items(JOI.string().regex(HELPER.mongoObjectRegEx)).min(1),
+                ids: JOI.array().items(JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)).min(1),
                 pagination: CONTROLLER_HELPERS.paginationInput,
                 others: JOI.object({password: JOI.string().required()})
             }),
-            output: HELPER.defaultOutput(JOI.array().items(HELPER.userOutput), true)
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ROUTER_HELPER.userOutput), true)
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             CONTROLLER_HELPERS.checkPassword,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next, 'ids'),
             (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.ckeckAdminNotInList(ctx, next, 'modifier'),
@@ -110,20 +110,20 @@ class UserRouter {
         ]
     })
     public static disableAllAccount: Spec = ({
-        method: HELPER.methods.PUT,
+        method: ROUTER_HELPER.methods.PUT,
         path: '/disable-all',
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
+            type: ROUTER_HELPER.contentType.JSON,
             body: JOI.object({
-                ids: JOI.array().items(JOI.string().regex(HELPER.mongoObjectRegEx)).min(1),
+                ids: JOI.array().items(JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)).min(1),
                 pagination: CONTROLLER_HELPERS.paginationInput,
                 others: JOI.object({password: JOI.string().required()})
             }),
-            output: HELPER.defaultOutput(JOI.array().items(HELPER.userOutput), true)
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ROUTER_HELPER.userOutput), true)
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             CONTROLLER_HELPERS.checkPassword,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next, 'ids'),
             (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.ckeckAdminNotInList(ctx, next, 'modifier'),
@@ -133,32 +133,32 @@ class UserRouter {
         ]
     })
     public static currentUserData: Spec = ({
-        method: HELPER.methods.GET,
+        method: ROUTER_HELPER.methods.GET,
         path: `/current-user-data`,
         validate: {
             continueOnError: true,
-            output: HELPER.defaultOutput(JOI.object({
-                user: HELPER.userOutput,
+            output: ROUTER_HELPER.defaultOutput(JOI.object({
+                user: ROUTER_HELPER.userOutput,
                 roles: JOI.array().items(JOI.string()).allow([]),
             }))
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             (ctx: ModifiedContext) => USER_CONTROLLER.currentUserData(ctx),
         ]
     })
     public static resetPassword: Spec = ({
-        method: HELPER.methods.PUT,
+        method: ROUTER_HELPER.methods.PUT,
         path: '/reset-password/:id',
         validate: {
             continueOnError: true,
-            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
-            type: HELPER.contentType.JSON,
+            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
+            type: ROUTER_HELPER.contentType.JSON,
             body: JOI.object({others: JOI.object({password: JOI.string().required()})}),
-            output: HELPER.defaultOutput(JOI.empty())
+            output: ROUTER_HELPER.defaultOutput(JOI.empty())
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             CONTROLLER_HELPERS.checkPassword,
             (ctx: ModifiedContext, next: Function) => USER_CONTROLLER.ckeckExistingAndNotAdmin(ctx, next, "modifer"),
             USER_CONTROLLER.resetPassword,
@@ -173,19 +173,19 @@ class UserRouter {
         profile: UserRouter.PROFILE_VALIDATION,
     }).options({stripUnknown: true});
     public static create: Spec = ({
-        method: HELPER.methods.POST,
-        path: ROUTER_HELPER.createPath(),
+        method: ROUTER_HELPER.methods.POST,
+        path: ROUTE_PATH_HELPER.createPath(),
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
+            type: ROUTER_HELPER.contentType.JSON,
             body: JOI.object({
                 entity: UserRouter.createBody,
                 others: JOI.object({password: JOI.string().required()}),
             }),
-            output: HELPER.defaultOutput(JOI.object(HELPER.userOutput))
+            output: ROUTER_HELPER.defaultOutput(JOI.object(ROUTER_HELPER.userOutput))
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             CONTROLLER_HELPERS.checkPassword,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next),
             UserRouter.createValidation(),
@@ -193,20 +193,20 @@ class UserRouter {
         ]
     })
     private static createAndGet: Spec = ({
-        method: HELPER.methods.POST,
-        path: ROUTER_HELPER.createAndGetPath(),
+        method: ROUTER_HELPER.methods.POST,
+        path: ROUTE_PATH_HELPER.createAndGetPath(),
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
+            type: ROUTER_HELPER.contentType.JSON,
             body: JOI.object({
                 entity: UserRouter.createBody,
                 others: JOI.object({password: JOI.string().required()}),
                 pagination: CONTROLLER_HELPERS.paginationInput
             }),
-            output: HELPER.defaultOutput(JOI.array().items(HELPER.userOutput), true)
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ROUTER_HELPER.userOutput), true)
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             CONTROLLER_HELPERS.checkPassword,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next),
             UserRouter.createValidation(),
@@ -224,22 +224,22 @@ class UserRouter {
         profile: UserRouter.PROFILE_VALIDATION,
     }).options({stripUnknown: true});
     public static update: Spec = ({
-        method: HELPER.methods.PUT,
-        path: ROUTER_HELPER.updatePath(),
+        method: ROUTER_HELPER.methods.PUT,
+        path: ROUTE_PATH_HELPER.updatePath(),
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
+            type: ROUTER_HELPER.contentType.JSON,
             params: JOI.object({
-                id: JOI.string().regex(HELPER.mongoObjectRegEx)
+                id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)
             }),
             body: JOI.object({
                 entity: UserRouter.updateBody,
                 others: JOI.object({password: JOI.string().required()}),
             }),
-            output: HELPER.defaultOutput(JOI.object(HELPER.userOutput))
+            output: ROUTER_HELPER.defaultOutput(JOI.object(ROUTER_HELPER.userOutput))
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             CONTROLLER_HELPERS.checkPassword,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next),
             UserRouter.updateValidation(),
@@ -247,21 +247,21 @@ class UserRouter {
         ]
     })
     private static updateAndGet: Spec = ({
-        method: HELPER.methods.PUT,
-        path: ROUTER_HELPER.updateAndGetPath(),
+        method: ROUTER_HELPER.methods.PUT,
+        path: ROUTE_PATH_HELPER.updateAndGetPath(),
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
-            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
+            type: ROUTER_HELPER.contentType.JSON,
+            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
             body: JOI.object({
                 entity: UserRouter.updateBody,
                 others: JOI.object({password: JOI.string().required()}),
                 pagination: CONTROLLER_HELPERS.paginationInput
             }),
-            output: HELPER.defaultOutput(JOI.array().items(HELPER.userOutput), true)
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ROUTER_HELPER.userOutput), true)
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             CONTROLLER_HELPERS.checkPassword,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next),
             UserRouter.updateValidation(),
@@ -270,17 +270,17 @@ class UserRouter {
         ]
     })
     private static deleteAndGet: Spec = ({
-        method: HELPER.methods.PUT,
-        path: ROUTER_HELPER.deleteAndGetPath(),
+        method: ROUTER_HELPER.methods.PUT,
+        path: ROUTE_PATH_HELPER.deleteAndGetPath(),
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
-            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
+            type: ROUTER_HELPER.contentType.JSON,
+            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
             body: JOI.object({others: JOI.object({password: JOI.string().required()}), pagination: CONTROLLER_HELPERS.paginationInput}),
-            output: HELPER.defaultOutput(JOI.array().items(HELPER.userOutput), true)
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ROUTER_HELPER.userOutput), true)
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             CONTROLLER_HELPERS.checkPassword,
             CONTROLLER_HELPERS.dispatch,
             UserRouter.deleteValidation(),
@@ -289,48 +289,48 @@ class UserRouter {
         ]
     })
     private static page: Spec = ({
-        method: HELPER.methods.POST,
-        path: ROUTER_HELPER.pagePath(),
+        method: ROUTER_HELPER.methods.POST,
+        path: ROUTE_PATH_HELPER.pagePath(),
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
+            type: ROUTER_HELPER.contentType.JSON,
             body: JOI.object({pagination: CONTROLLER_HELPERS.getPaginationInput()}),
-            output: HELPER.defaultOutput(JOI.array().items(HELPER.userOutput), true)
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ROUTER_HELPER.userOutput), true)
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setPagination(ctx, next),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.page(ctx, UserModel, PROFILE_CONTROLLER.condition(ctx)),
         ]
     })
     private static delete: Spec = ({
-        method: HELPER.methods.PUT,
-        path: ROUTER_HELPER.deletePath(),
+        method: ROUTER_HELPER.methods.PUT,
+        path: ROUTE_PATH_HELPER.deletePath(),
         validate: {
             continueOnError: true,
-            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
-            type: HELPER.contentType.JSON,
+            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
+            type: ROUTER_HELPER.contentType.JSON,
             body: JOI.object({others: JOI.object({others: JOI.object({password: JOI.string().required()})})}),
-            output: HELPER.defaultOutput(JOI.object(HELPER.userOutput))
+            output: ROUTER_HELPER.defaultOutput(JOI.object(ROUTER_HELPER.userOutput))
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             CONTROLLER_HELPERS.checkPassword,
             UserRouter.deleteValidation(),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.delete(ctx, UserModel),
         ]
     })
     private static deleteAll: Spec = ({
-        method: HELPER.methods.PUT,
-        path: ROUTER_HELPER.deleteAllPath(),
+        method: ROUTER_HELPER.methods.PUT,
+        path: ROUTE_PATH_HELPER.deleteAllPath(),
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
-            body: JOI.object({others: JOI.object({password: JOI.string().required()}), ids: JOI.array().items(JOI.string().regex(HELPER.mongoObjectRegEx)).min(1)}),
-            output: HELPER.defaultOutput(JOI.array().items(HELPER.userOutput), true)
+            type: ROUTER_HELPER.contentType.JSON,
+            body: JOI.object({others: JOI.object({password: JOI.string().required()}), ids: JOI.array().items(JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)).min(1)}),
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ROUTER_HELPER.userOutput), true)
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             CONTROLLER_HELPERS.checkPassword,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next, 'ids'),
             UserRouter.deleteAllValidation(),
@@ -338,20 +338,20 @@ class UserRouter {
         ]
     })
     private static deleteAllAndGet: Spec = ({
-        method: HELPER.methods.PUT,
-        path: ROUTER_HELPER.deleteAllAndGetPath(),
+        method: ROUTER_HELPER.methods.PUT,
+        path: ROUTE_PATH_HELPER.deleteAllAndGetPath(),
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
+            type: ROUTER_HELPER.contentType.JSON,
             body: JOI.object({
                 others: JOI.object({password: JOI.string().required()}),
-                ids: JOI.array().items(JOI.string().regex(HELPER.mongoObjectRegEx)).min(1),
+                ids: JOI.array().items(JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)).min(1),
                 pagination: CONTROLLER_HELPERS.paginationInput,
             }),
-            output: HELPER.defaultOutput(JOI.array().items(HELPER.userOutput), true)
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ROUTER_HELPER.userOutput), true)
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             CONTROLLER_HELPERS.checkPassword,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next, 'ids'),
             UserRouter.deleteAllValidation(),
@@ -360,67 +360,67 @@ class UserRouter {
         ]
     })
     private static all: Spec = ({
-        method: HELPER.methods.GET,
-        path: ROUTER_HELPER.allPath(),
+        method: ROUTER_HELPER.methods.GET,
+        path: ROUTE_PATH_HELPER.allPath(),
         validate: {
             continueOnError: true,
-            output: HELPER.defaultOutput(JOI.array().items(HELPER.userOutput))
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(ROUTER_HELPER.userOutput))
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.all(ctx, UserModel),
         ]
     });
     private static updateMyPassword: Spec = ({
-        method: HELPER.methods.PUT,
+        method: ROUTER_HELPER.methods.PUT,
         path: `/update-my-password`,
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
+            type: ROUTER_HELPER.contentType.JSON,
             body: JOI.object({
                 oldPassword: JOI.string().label('l\'ancien mot de passe'),
                 newPassword: JOI.string().min(5).label('le nouveau mot de passe')
             }).options({stripUnknown: true}),
-            output: HELPER.defaultOutput(JOI.object({token: JOI.string()}))
+            output: ROUTER_HELPER.defaultOutput(JOI.object({token: JOI.string()}))
         },
 
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             USER_CONTROLLER.updateMyPassword,
         ]
     })
 
     public static forgotPasswordRequest: Spec = ({
-        method: HELPER.methods.PUT,
+        method: ROUTER_HELPER.methods.PUT,
         path: '/forget-password-request',
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
-            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
+            type: ROUTER_HELPER.contentType.JSON,
+            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
             body: JOI.object({email: JOI.string().email().required()}),
-            output: HELPER.defaultOutput(JOI.empty())
+            output: ROUTER_HELPER.defaultOutput(JOI.empty())
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             USER_CONTROLLER.forgotPasswordRequest,
         ]
     })
 
     public static forgotPasswordFinalisation: Spec = ({
-        method: HELPER.methods.PUT,
+        method: ROUTER_HELPER.methods.PUT,
         path: '/forget-password-finatisation',
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
-            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
+            type: ROUTER_HELPER.contentType.JSON,
+            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
             body: JOI.object({
                 token: JOI.string().required(),
                 password: JOI.string().required()
             }),
-            output: HELPER.defaultOutput(JOI.empty())
+            output: ROUTER_HELPER.defaultOutput(JOI.empty())
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             USER_CONTROLLER.forgotPasswordFinalisation,
         ]
     })

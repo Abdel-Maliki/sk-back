@@ -1,10 +1,10 @@
 import ROUTER, {Joi as JOI, Spec} from 'koa-joi-router';
-import HELPER from './helper';
+import ROUTER_HELPER from './router-helper';
 import {SchemaMap} from "joi";
 import CONTROLLER_HELPERS from "../controller/controller-helpers";
 import {JwtFunctionResponse, ModifiedContext} from "index";
 import LogModel from './../model/log';
-import ROUTER_HELPER from "./router-helper";
+import ROUTE_PATH_HELPER from "./route-path-helper";
 import {RoutesPrefix} from "../constante/routes-prefix";
 import ROLES from "../constante/roles";
 import LOG_CONSTANTE from "../constante/log-constante";
@@ -15,7 +15,7 @@ class LogRouter {
     private static readonly ROLES_NOT_FOUND = `Certaines logs n'existent pas`;
 
     private static readonly pageOutput: SchemaMap = {
-        id: JOI.string().regex(HELPER.mongoObjectRegEx).required(),
+        id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx).required(),
         action: JOI.string().optional().allow('', null),
         state: JOI.string().required(),
         userName: JOI.string().optional().allow('', null),
@@ -25,7 +25,7 @@ class LogRouter {
     };
 
     private static readonly readOutPut: SchemaMap = {
-        id: JOI.string().regex(HELPER.mongoObjectRegEx).required(),
+        id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx).required(),
         action: JOI.string().optional().allow('', null),
         elementId: JOI.string().optional().allow('', null),
         state: JOI.string().required(),
@@ -44,51 +44,49 @@ class LogRouter {
     };
 
     private static read: Spec = ({
-        method: HELPER.methods.PUT,
-        path: ROUTER_HELPER.readPath(),
+        method: ROUTER_HELPER.methods.PUT,
+        path: ROUTE_PATH_HELPER.readPath(),
         validate: {
             continueOnError: true,
-            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
-            output: HELPER.defaultOutput(JOI.object(LogRouter.readOutPut))
+            type: ROUTER_HELPER.contentType.JSON,
+            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
+            output: ROUTER_HELPER.defaultOutput(JOI.object(LogRouter.readOutPut))
         },
-        handler: [
-            HELPER.validation,
-            (ctx: ModifiedContext) => CONTROLLER_HELPERS.read(ctx, LogModel),
-        ]
+        handler: [ROUTER_HELPER.validation, (ctx: ModifiedContext) => CONTROLLER_HELPERS.read(ctx, LogModel)]
     });
 
     private static delete: Spec = ({
-        method: HELPER.methods.PUT,
-        path: ROUTER_HELPER.deletePath(),
+        method: ROUTER_HELPER.methods.PUT,
+        path: ROUTE_PATH_HELPER.deletePath(),
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
-            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
+            type: ROUTER_HELPER.contentType.JSON,
+            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
             body: JOI.object({others: JOI.object({password: JOI.string().required()})}),
-            output: HELPER.defaultOutput(JOI.object(LogRouter.pageOutput)),
+            output: ROUTER_HELPER.defaultOutput(JOI.object(LogRouter.pageOutput)),
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             CONTROLLER_HELPERS.checkPassword,
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.delete(ctx, LogModel),
         ]
     });
 
     private static deleteAndGet: Spec = ({
-        method: HELPER.methods.PUT,
-        path: ROUTER_HELPER.deleteAndGetPath(),
+        method: ROUTER_HELPER.methods.PUT,
+        path: ROUTE_PATH_HELPER.deleteAndGetPath(),
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
-            params: JOI.object({id: JOI.string().regex(HELPER.mongoObjectRegEx)}),
+            type: ROUTER_HELPER.contentType.JSON,
+            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
             body: JOI.object({
                 others: JOI.object({password: JOI.string().required()}),
                 pagination: CONTROLLER_HELPERS.paginationInput
             }),
-            output: HELPER.defaultOutput(JOI.array().items(LogRouter.pageOutput), true)
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(LogRouter.pageOutput), true)
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             CONTROLLER_HELPERS.checkPassword,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setPagination(ctx, next),
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.deleteAndNext(ctx, next, LogModel),
@@ -97,19 +95,19 @@ class LogRouter {
     });
 
     private static deleteAll: Spec = ({
-        method: HELPER.methods.PUT,
-        path: ROUTER_HELPER.deleteAllPath(),
+        method: ROUTER_HELPER.methods.PUT,
+        path: ROUTE_PATH_HELPER.deleteAllPath(),
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
+            type: ROUTER_HELPER.contentType.JSON,
             body: JOI.object({
                 others: JOI.object({password: JOI.string().required()}),
-                ids: JOI.array().items(JOI.string().regex(HELPER.mongoObjectRegEx)).min(1)
+                ids: JOI.array().items(JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)).min(1)
             }),
-            output: HELPER.defaultOutput(JOI.empty())
+            output: ROUTER_HELPER.defaultOutput(JOI.empty())
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             CONTROLLER_HELPERS.checkPassword,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, LogModel, '_id', ctx.request.body, ctx.request.body.length, LogRouter.ROLES_NOT_FOUND),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.deleteAll(ctx, LogModel),
@@ -117,20 +115,20 @@ class LogRouter {
     });
 
     private static deleteAllAndGet: Spec = ({
-        method: HELPER.methods.PUT,
-        path: ROUTER_HELPER.deleteAllAndGetPath(),
+        method: ROUTER_HELPER.methods.PUT,
+        path: ROUTE_PATH_HELPER.deleteAllAndGetPath(),
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
+            type: ROUTER_HELPER.contentType.JSON,
             body: JOI.object({
                 others: JOI.object({password: JOI.string().required()}),
-                ids: JOI.array().items(JOI.string().regex(HELPER.mongoObjectRegEx)).min(1),
+                ids: JOI.array().items(JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)).min(1),
                 pagination: CONTROLLER_HELPERS.paginationInput,
             }),
-            output: HELPER.defaultOutput(JOI.array().items(LogRouter.pageOutput), true)
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(LogRouter.pageOutput), true)
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             CONTROLLER_HELPERS.checkPassword,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next, 'ids'),
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, LogModel, '_id', ctx.request.body, ctx.request.body.length, LogRouter.ROLES_NOT_FOUND),
@@ -140,16 +138,16 @@ class LogRouter {
     });
 
     private static page: Spec = ({
-        method: HELPER.methods.POST,
-        path: ROUTER_HELPER.pagePath(),
+        method: ROUTER_HELPER.methods.POST,
+        path: ROUTE_PATH_HELPER.pagePath(),
         validate: {
             continueOnError: true,
-            type: HELPER.contentType.JSON,
+            type: ROUTER_HELPER.contentType.JSON,
             body: JOI.object({pagination: CONTROLLER_HELPERS.getPaginationInput()}),
-            output: HELPER.defaultOutput(JOI.array().items(LogRouter.pageOutput), true)
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(LogRouter.pageOutput), true)
         },
         handler: [
-            HELPER.validation,
+            ROUTER_HELPER.validation,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.setPagination(ctx, next),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.page(ctx, LogModel, LogRouter.condition(ctx)),
         ]
@@ -169,11 +167,11 @@ class LogRouter {
             $options: 'i'
         };
 
-        if (filter.date && filter.date.length > 0 && filter.date[0]) {
-            cond.createdAt.$gte = filter.date[0];
+        if (filter.dates && filter.dates.length > 0 && filter.dates[0]) {
+            cond.createdAt.$gte = filter.dates[0];
         }
-        if (filter.date && filter.date.length > 1 && filter.date[1]) {
-            cond.createdAt.$lt = new Date(new Date(filter.date[1]).getTime() + (24 * 60 * 60 * 1000));
+        if (filter.dates && filter.dates.length > 1 && filter.dates[1]) {
+            cond.createdAt.$lt = new Date(new Date(filter.dates[1]).getTime() + (24 * 60 * 60 * 1000));
         }
         if (filter.status) cond.state = filter.status;
         if (filter.codes && filter.codes.length && filter.codes.length > 0) cond.code = { $in: filter.codes}

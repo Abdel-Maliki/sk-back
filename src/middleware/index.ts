@@ -10,6 +10,7 @@ import LoModel from './../model/log';
 import ProfileModel from "../model/profile";
 import LogConstante from "../constante/log-constante";
 import {version} from "../../package.json";
+import ProjectConstantes from "../constante/project-constantes";
 
 
 /**
@@ -32,10 +33,9 @@ class Middleware {
             public static authenticate = async (ctx: ModifiedContext, next: Function) => {
                 const token = Middleware.resolveAuthorizationHeader(ctx);
                 const payload: any = await Jwt.decode(token);
-                const mongoObjectRegEx = /^[a-f\d]{24}$/i;
                 let user: UserDocument = null;
 
-                if (payload && payload.hasOwnProperty('id') && typeof payload.id === 'string' && mongoObjectRegEx.test(payload.id)) {
+                if (payload && payload.hasOwnProperty('id') && typeof payload.id === 'string' && ProjectConstantes.mongoObjectRegEx.test(payload.id)) {
                     user = await UserModel.findById(payload.id).exec().catch(() => null);
                     if (!user) return ctx.answerUserError(401, Responses.INVALID_CREDS);
                 } else {
