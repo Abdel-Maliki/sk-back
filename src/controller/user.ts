@@ -1,4 +1,4 @@
-import {ModifiedContext, Responses} from './../types';
+import {ModifiedContext, NonNullable, Responses} from './../types';
 
 import {Pagination} from "../common/pagination";
 import ProfileModel, {ProfileDocument, ProfileType} from "../model/profile";
@@ -7,9 +7,7 @@ import {DefaultUserCreator} from "../service/default-user-creator";
 import ControllerHelpers from "./controller-helpers";
 import Roles from "../constante/roles";
 import BCRYPT from "bcrypt";
-import MONGOOSE from "mongoose";
 import Mail from "../service/mail";
-import config from "../configs/config";
 import {SentMessageInfo} from "nodemailer";
 import ProjectConstantes from "../constante/project-constantes";
 
@@ -132,22 +130,13 @@ class UserController {
     }
 
     public static ckeckExistingAndNotAdmin = async (ctx: ModifiedContext, next: Function, action: string) => {
-        console.log('Class: UserController, Function: ckeckExistingAndNotAdmin, Line 82 , : '
-            ,);
         const user: UserDocument = await UserModel.findById(ctx.request.params['id']).catch(() => null);
-        console.log('Class: UserController, Function: ckeckExistingAndNotAdmin, Line 83 , user: '
-            , user);
+
         if (user && user.userName === DefaultUserCreator.ADMIN_USERNAME) {
-            console.log('Class: UserController, Function: ckeckExistingAndNotAdmin, Line 88 , : '
-                ,);
             return ctx.answerUserError(400, `Impossible de ${action} l'utilisateur admin`);
         } else if (user) {
-            console.log('Class: UserController, Function: ckeckExistingAndNotAdmin, Line 92 , : '
-                ,);
             return await next();
         } else {
-            console.log('Class: UserController, Function: ckeckExistingAndNotAdmin, Line 96 , : '
-                ,);
             return ctx.answerUserError(400, `Cet utilisateur n'existe pas`);
         }
     };
@@ -208,7 +197,8 @@ class UserController {
         }
     };
 
-    public static activateOrDisableAccount = async (ctx: ModifiedContext, next: Function, ids: string[], status: UserState.ACTIVE | UserState.DESACTIVE) => {
+    public static activateOrDisableAccount = async (ctx: ModifiedContext, next: Function, ids: NonNullable<string[]>, status: UserState.ACTIVE | UserState.DESACTIVE) => {
+
         let val = status === UserState.ACTIVE
             ? {status, activatedDate: new Date(), testAuthNumber: 0}
             : {

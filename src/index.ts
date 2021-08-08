@@ -1,6 +1,6 @@
-import {ConfigServerType} from './types/';
 
 import SERVER from './server';
+import {ConfigServerType} from "index";
 const {env: ENV} = process;
 
 process.on('unhandledRejection', (err) => console.error(err));
