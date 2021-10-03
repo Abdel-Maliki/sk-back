@@ -2,7 +2,7 @@ import {Joi as JOI, OutputValidation} from 'koa-joi-router';
 import {JoiObject, ObjectSchema, SchemaMap} from "joi";
 import {MessageError, ModifiedContext} from "index";
 import JoiMessageMapper from "../common/joi-message-mapper";
-import ProjectConstantes from "../constante/project-constantes";
+import ProjectConstants from "../constante/project-constants";
 
 enum methods {
     POST = 'post',
@@ -25,7 +25,7 @@ class RouterHelper {
     public static defaults = defaults;
     public static methods = methods;
     public static contentType = contentType;
-    public static mongoObjectRegEx = ProjectConstantes.mongoObjectRegEx;
+    public static mongoObjectRegEx = ProjectConstants.mongoObjectRegEx;
 
     public static validation = async (ctx: ModifiedContext, next: Function) => {
         if (ctx.invalid) {

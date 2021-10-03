@@ -9,7 +9,7 @@ import Roles from "../constante/roles";
 import BCRYPT from "bcrypt";
 import Mail from "../service/mail";
 import {SentMessageInfo} from "nodemailer";
-import ProjectConstantes from "../constante/project-constantes";
+import ProjectConstants from "../constante/project-constants";
 
 /**
  * @param firstName - A valid string that has already been validated by JOI
@@ -67,7 +67,7 @@ class UserController {
 
         const payload: any = await ctx.jwt.decode(ctx.request.body.token);
         let user: UserDocument = null;
-        if (payload && payload.hasOwnProperty('id') && typeof payload.id === 'string' && ProjectConstantes.mongoObjectRegEx.test(payload.id)) {
+        if (payload && payload.hasOwnProperty('id') && typeof payload.id === 'string' && ProjectConstants.mongoObjectRegEx.test(payload.id)) {
             user = await UserModel.findById(payload.id).exec().catch(() => null);
             if (!user) return ctx.answerUserError(401, Responses.INVALID_CREDS);
         } else {

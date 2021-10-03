@@ -10,7 +10,7 @@ import LoModel from './../model/log';
 import ProfileModel from "../model/profile";
 import LogConstante from "../constante/log-constante";
 import {version} from "../../package.json";
-import ProjectConstantes from "../constante/project-constantes";
+import ProjectConstants from "../constante/project-constants";
 
 
 /**
@@ -35,7 +35,7 @@ class Middleware {
                 const payload: any = await Jwt.decode(token);
                 let user: UserDocument = null;
 
-                if (payload && payload.hasOwnProperty('id') && typeof payload.id === 'string' && ProjectConstantes.mongoObjectRegEx.test(payload.id)) {
+                if (payload && payload.hasOwnProperty('id') && typeof payload.id === 'string' && ProjectConstants.mongoObjectRegEx.test(payload.id)) {
                     user = await UserModel.findById(payload.id).exec().catch(() => null);
                     if (!user) return ctx.answerUserError(401, Responses.INVALID_CREDS);
                 } else {
