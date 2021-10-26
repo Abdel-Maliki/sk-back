@@ -7,4 +7,5 @@ export const RoutesPrefix = {
     user: "/users",
     profile: "/profiles",
     log: "/logs",
+    enterprise: "/enterprises",
 }

@@ -21,6 +21,12 @@ enum Roles {
 
     DELETE_LOG = "Supprimer un log",
     READ_LOG = "Consulter les logs",
+
+
+    ADD_ENTERPRISE = "Créer une entreprise",
+    EDIT_ENTERPRISE = "Modifier une entreprise",
+    DELETE_ENTERPRISE = "Supprimer une entreprise",
+    READ_ENTERPRISE = "Lister les entreprises",
 }
 
 export default Roles;

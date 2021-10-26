@@ -10,6 +10,7 @@ import LogConstante from "../constante/log-constante";
 import Middleware from "../middleware";
 import BCRYPT from "bcrypt";
 import UserModel from "../model/user";
+
 const {env: ENV} = process;
 
 
@@ -29,7 +30,7 @@ class ControllerHelpers {
         filters: JOI.object(),
     }).options({stripUnknown: true});
 
-    public static getPaginationInput(filterSchema: ObjectSchema = JOI.object()): ObjectSchema{
+    public static getPaginationInput(filterSchema: ObjectSchema = JOI.object()): ObjectSchema {
         return JOI.object({
             page: JOI.number().min(0).required(),
             size: JOI.number().min(1).required(),
@@ -143,6 +144,8 @@ class ControllerHelpers {
             ctx.request.params['id'], update, options
         ).session(session).exec().catch(() => null);
 
+        console.log('Class: ControllerHelpers, Function: updateAndNext, Line 147 updateProfile(): '
+        , updateProfile);
         if (updateProfile) {
             await next();
         } else {
@@ -310,25 +313,20 @@ class ControllerHelpers {
     };
 
     public static async dispatch(ctx: ModifiedContext, next: Function, dataName: string = 'entity') {
-        console.log('Class: ControllerHelpers, Function: dispatch, Line 313 (): '
-        , );
         const entity = ctx.request.body[dataName];
         ctx.pagination = ctx.request.body.pagination;
         ctx.request.body = entity;
-        console.log('Class: ControllerHelpers, Function: dispatch, Line 318 (): '
-        , );
         return await next();
     };
 
     public static async checkPassword(ctx: ModifiedContext, next: Function) {
+        return await next();
         const isEquals = await BCRYPT.compare(ctx.request.body.others.password, ctx.state.password).catch(() => null);
         if (isEquals === true) return await next();
         else if (isEquals === false) {
-            UserModel.findByIdAndUpdate(ctx.state.user.id, { $inc: { testAuthNumber : 1 }}).exec().then();
+            UserModel.findByIdAndUpdate(ctx.state.user.id, {$inc: {testAuthNumber: 1}}).exec().then();
             return ctx.answerUserError(400, "Le mot de passe est incorrect");
         }
-        console.log('Class: ControllerHelpers, Function: checkPassword, Line 330 (): '
-        , );
         return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
     };
 
@@ -342,11 +340,14 @@ class ControllerHelpers {
 
     public static forbiddenError = async (ctx: ModifiedContext) => {
         if (ctx.state.user.profile.name === DefaultUserCreator.ADMIN_USERNAME) {
-            return ctx.answerUserError(403, 'forbidden',{user: ctx.state.user, roles: Object.values(Roles)});
+            return ctx.answerUserError(403, 'forbidden', {user: ctx.state.user, roles: Object.values(Roles)});
         } else {
             const profile: ProfileType = await ProfileModel
                 .findOne({name: ctx.state.user.profile.name}, {roles: 1, _id: 0}).exec().catch(() => null);
-            return ctx.answerUserError(403, 'forbidden',{user: ctx.state.user, roles: profile && profile.roles ? profile.roles : []});
+            return ctx.answerUserError(403, 'forbidden', {
+                user: ctx.state.user,
+                roles: profile && profile.roles ? profile.roles : []
+            });
         }
     }
 
@@ -372,7 +373,7 @@ class ControllerHelpers {
         return size && size > 0;
     }
 
-    public static buildRouter = ( spec: Spec, roles: Roles[], log: LogConstante, prefix: string, jwtMiddleware: JwtFunctionResponse): ROUTER.Router => {
+    public static buildRouter = (spec: Spec, roles: Roles[], log: LogConstante, prefix: string, jwtMiddleware: JwtFunctionResponse): ROUTER.Router => {
         const router = ROUTER();
         router.prefix(prefix);
         router.use(jwtMiddleware.authenticate);

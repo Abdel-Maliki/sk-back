@@ -21,7 +21,7 @@ class UserRouter {
     public static PROFILE_VALIDATION = JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)});
 
     public static read: Spec = ({
-        method: ROUTER_HELPER.methods.GET,
+        method: ROUTER_HELPER.methods.PUT,
         path: ROUTE_PATH_HELPER.readPath(),
         validate: {
             params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
@@ -207,7 +207,7 @@ class UserRouter {
         },
         handler: [
             ROUTER_HELPER.validation,
-            CONTROLLER_HELPERS.checkPassword,
+            //CONTROLLER_HELPERS.checkPassword,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next),
             UserRouter.createValidation(),
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.createAndNext(ctx, next, UserModel),

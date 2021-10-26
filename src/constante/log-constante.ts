@@ -42,6 +42,16 @@ enum LogConstante  {
     DELETE_MULTIPLE_LOG= "Suppression multiple des logs",
     READ_LOG= "consulter un log",
     PAGE_LOG= 'page logs',
+
+
+    ADD_ENTERPRISE= "Créer une entreprise",
+    EDIT_ENTERPRISE= "Modifier une entreprise",
+    DELETE_ENTERPRISE= "Supprimer une entreprise",
+    READ_ENTERPRISE= "Lister les entreprises",
+    DELETE_MULTIPLE_ENTERPRISE= "Suppression multiple des entreprises",
+    LISTER_ENTERPRISE= 'Lister les entreprises',
+    PAGE_ENTERPRISE= 'page entreprises',
+    FILTER_ENTERPRISE= 'filtrer les entreprises',
 }
 
 export default LogConstante;

@@ -5,7 +5,7 @@
 
 const ProjectConstants = {
     mongoObjectRegEx: /^[a-f\d]{24}$/i,
-    withEnterprise: true,
+    withEnterprise: false,
 }
 
 export default ProjectConstants;

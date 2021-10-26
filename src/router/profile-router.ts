@@ -10,6 +10,7 @@ import {RoutesPrefix} from "../constante/routes-prefix";
 import UserModel from './../model/user';
 import ROLES from "../constante/roles";
 import LOG_CONSTANTE from "../constante/log-constante";
+import ProjectConstants from "../constante/project-constants";
 
 
 class ProfileRouter {
@@ -20,10 +21,19 @@ class ProfileRouter {
     public static readonly NAME_VALIDATION = JOI.string().trim().min(3).max(ROUTER_HELPER.defaults.length).label("le nom du profile").required();
     public static readonly DESCRIPTION_VALIDATION = JOI.string().trim().allow('', null).max(ROUTER_HELPER.defaults.length).label("la description du profile").optional();
 
-    private static readonly profileInput: ObjectSchema = JOI.object({
+    private static readonly profileInputObject = {
         name: ProfileRouter.NAME_VALIDATION,
         description: ProfileRouter.DESCRIPTION_VALIDATION,
+    }
+
+    private static readonly profileInputNotEnterprise: ObjectSchema = JOI.object(ProfileRouter.profileInputObject).options({stripUnknown: true});
+
+    private static readonly profileInputWithEnterprise: ObjectSchema = JOI.object({
+        ...ProfileRouter.profileInputObject,
+        enterpriseId: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx).required(),
     }).options({stripUnknown: true});
+
+    private static readonly profileInput: ObjectSchema = ProjectConstants.withEnterprise ? ProfileRouter.profileInputWithEnterprise : ProfileRouter.profileInputNotEnterprise;
 
     private static readonly profileOutput: SchemaMap = {
         id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx).required(),
@@ -324,8 +334,6 @@ class ProfileRouter {
             PROFILE_CONTROLLER.beforeUpdate,
         ];
     }
-
-
 
 
 }

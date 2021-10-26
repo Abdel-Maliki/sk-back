@@ -66,9 +66,6 @@ class JoiMessageMapper {
     };
 
     public static messageWrapper(messageError: MessageError) {
-        console.log('Class: Helper, Function: messageWrapper, Line 109 , messageError: '
-            , messageError);
-
         return (messageError.type.includes('required'))
             ? `${messageError.context.label} est requis${messageError.context.label.toLowerCase().startsWith('la') ? 'e' : ''}`
             : messageError.type.startsWith('number')
