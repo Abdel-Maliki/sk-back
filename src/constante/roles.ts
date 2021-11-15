@@ -27,6 +27,29 @@ enum Roles {
     EDIT_ENTERPRISE = "Modifier une entreprise",
     DELETE_ENTERPRISE = "Supprimer une entreprise",
     READ_ENTERPRISE = "Lister les entreprises",
+
+
+    ADD_BENEFICIARY = "Créer un béneficaire",
+    EDIT_BENEFICIARY = "Modifier un béneficaire",
+    DELETE_BENEFICIARY = "Supprimer un béneficaire",
+    READ_BENEFICIARY = "Lister les béneficaires",
+
+    ADD_REGION = "Créer une region",
+    EDIT_REGION = "Modifier une region",
+    DELETE_REGION = "Supprimer une region",
+    READ_REGION = "Lister les regions",
+
+    ADD_DEPARTMENT = "Créer un departément",
+    EDIT_DEPARTMENT = "Modifier un departément",
+    DELETE_DEPARTMENT = "Supprimer un departément",
+    READ_DEPARTMENT = "Lister les departéments",
+
+    ADD_MUNICIPALITY = "Créer une commune",
+    EDIT_MUNICIPALITY = "Modifier une commune",
+    DELETE_MUNICIPALITY = "Supprimer une commune",
+    READ_MUNICIPALITY = "Lister les communes",
+
+
 }
 
 export default Roles;

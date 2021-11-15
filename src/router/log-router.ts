@@ -109,7 +109,7 @@ class LogRouter {
         handler: [
             ROUTER_HELPER.validation,
             CONTROLLER_HELPERS.checkPassword,
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, LogModel, '_id', ctx.request.body, ctx.request.body.length, LogRouter.ROLES_NOT_FOUND),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existValuesInKey(ctx, next, LogModel, '_id', ctx.request.body, ctx.request.body.length, LogRouter.ROLES_NOT_FOUND),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.deleteAll(ctx, LogModel),
         ]
     });
@@ -131,7 +131,7 @@ class LogRouter {
             ROUTER_HELPER.validation,
             CONTROLLER_HELPERS.checkPassword,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next, 'ids'),
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, LogModel, '_id', ctx.request.body, ctx.request.body.length, LogRouter.ROLES_NOT_FOUND),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existValuesInKey(ctx, next, LogModel, '_id', ctx.request.body, ctx.request.body.length, LogRouter.ROLES_NOT_FOUND),
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.deleteAll(ctx, LogModel, next),
             (ctx: ModifiedContext) => CONTROLLER_HELPERS.page(ctx, LogModel, LogRouter.condition(ctx)),
         ]

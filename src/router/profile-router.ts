@@ -259,7 +259,7 @@ class ProfileRouter {
             CONTROLLER_HELPERS.checkPassword,
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.dispatch(ctx, next, "roles"),
             (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.validateRoles(ctx, next),
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, ProfileModel,
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existValuesInKey(ctx, next, ProfileModel,
                 '_id', [ctx.request.params['id']], 1, ProfileRouter.profileNotFound),
             (ctx: ModifiedContext) => PROFILE_CONTROLLER.setRoles(ctx),
         ]
@@ -308,7 +308,7 @@ class ProfileRouter {
     private static deleteAllValidation(): Handler[] {
         return [
             // (ctx: ModifiedContext, next: Function) => PROFILE_CONTROLLER.ckeckAdminNotInList(ctx, next),
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, ProfileModel, '_id', ctx.request.body, ctx.request.body.length, ProfileRouter.errorMessage),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existValuesInKey(ctx, next, ProfileModel, '_id', ctx.request.body, ctx.request.body.length, ProfileRouter.errorMessage),
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.checkRelation(ctx, next, UserModel, 'profile.id',
                 ctx.request.body, size => `ces profiles sont associé à ${size} utilisateur${size > 1 ? 's' : ''}`),
         ];
@@ -316,7 +316,7 @@ class ProfileRouter {
 
     private static deleteValidation(): Handler[] {
         return [
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, ProfileModel, '_id', [ctx.request.params['id']], 1, ProfileRouter.profileNotFound),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existValuesInKey(ctx, next, ProfileModel, '_id', [ctx.request.params['id']], 1, ProfileRouter.profileNotFound),
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.checkRelation(ctx, next, UserModel, 'profile.id',
                 [ctx.request.params['id']], size => `ce profile est associé à ${size} utilisateur${size > 1 ? 's' : ''}`),
         ];
@@ -330,7 +330,7 @@ class ProfileRouter {
 
     private static updateValidation(): Handler[] {
         return [
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, ProfileModel, '_id', [ctx.request.params['id']], 1, ProfileRouter.profileNotFound),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existValuesInKey(ctx, next, ProfileModel, '_id', [ctx.request.params['id']], 1, ProfileRouter.profileNotFound),
             PROFILE_CONTROLLER.beforeUpdate,
         ];
     }

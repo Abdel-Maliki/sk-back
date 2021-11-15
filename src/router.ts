@@ -4,6 +4,10 @@ import USER_ROUTES from './router/user';
 import PROFILE_ROUTES from './router/profile-router';
 import LOG_ROUTES from './router/log-router';
 import ENTERPRISE_ROUTES from './router/enterprise-router';
+import BENEFICIARY_ROUTES from './router/beneficiary-router';
+import REGION_ROUTES from './router/region-router';
+import DEPARTMENT_ROUTES from './router/department-router';
+import MINUCIPALITY_ROUTES from './router/municipality-router';
 import LOGIN_ROUTES from './router/login';
 import HEALTH_ROUTES from './router/health';
 import {JwtFunctionResponse} from "index";
@@ -19,6 +23,10 @@ class Router {
             PROFILE_ROUTES.routes(jwtMiddleware),
             LOG_ROUTES.routes(jwtMiddleware),
             ENTERPRISE_ROUTES.routes(jwtMiddleware),
+            BENEFICIARY_ROUTES.routes(jwtMiddleware),
+            REGION_ROUTES.routes(jwtMiddleware),
+            DEPARTMENT_ROUTES.routes(jwtMiddleware),
+            MINUCIPALITY_ROUTES.routes(jwtMiddleware),
         ]
     }
 

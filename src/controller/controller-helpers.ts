@@ -57,7 +57,7 @@ class ControllerHelpers {
 
         const totalElements: number = await model.countDocuments(condition);
         const response: DOCUMENT_TYPE[] = pageElements.map(profile => profile.toNormalization());
-        return {body: response, pagination: {page, size, sort, direction, totalElements}};
+        return {body: response, pagination: {...pagination, page, size, sort, direction, totalElements}};
     }
 
     public static async page<MODEL extends Document & { toNormalization(): DOCUMENT_TYPE }, DOCUMENT_TYPE>(
@@ -144,8 +144,6 @@ class ControllerHelpers {
             ctx.request.params['id'], update, options
         ).session(session).exec().catch(() => null);
 
-        console.log('Class: ControllerHelpers, Function: updateAndNext, Line 147 updateProfile(): '
-        , updateProfile);
         if (updateProfile) {
             await next();
         } else {
@@ -235,7 +233,7 @@ class ControllerHelpers {
         }
     }
 
-    public static async existeValuesInKey<MODEL extends Document & { toNormalization(): DOCUMENT_TYPE }, DOCUMENT_TYPE>(
+    public static async existValuesInKey<MODEL extends Document & { toNormalization(): DOCUMENT_TYPE }, DOCUMENT_TYPE>(
         ctx: ModifiedContext,
         next: Function,
         model: Model<MODEL>,

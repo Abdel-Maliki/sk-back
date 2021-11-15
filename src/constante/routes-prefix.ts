@@ -8,4 +8,8 @@ export const RoutesPrefix = {
     profile: "/profiles",
     log: "/logs",
     enterprise: "/enterprises",
+    beneficiary: "/beneficiaries",
+    region: "/regions",
+    department: "/departments",
+    municipality: "/municipalities",
 }

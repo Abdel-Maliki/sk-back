@@ -251,7 +251,7 @@ class EnterpriseRouter {
     private static deleteAllValidation(): Handler[] {
         return [
             // (ctx: ModifiedContext, next: Function) => ENTERPRISE_CONTROLLER.ckeckAdminNotInList(ctx, next),
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, EnterpriseModel, '_id', ctx.request.body, ctx.request.body.length, EnterpriseRouter.errorMessage),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existValuesInKey(ctx, next, EnterpriseModel, '_id', ctx.request.body, ctx.request.body.length, EnterpriseRouter.errorMessage),
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.checkRelation(ctx, next, UserModel, 'enterprise.id',
                 ctx.request.body, size => `ces enterprises sont associé à ${size} utilisateur${size > 1 ? 's' : ''}`),
         ];
@@ -259,7 +259,7 @@ class EnterpriseRouter {
 
     private static deleteValidation(): Handler[] {
         return [
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, EnterpriseModel, '_id', [ctx.request.params['id']], 1, EnterpriseRouter.enterpriseNotFound),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existValuesInKey(ctx, next, EnterpriseModel, '_id', [ctx.request.params['id']], 1, EnterpriseRouter.enterpriseNotFound),
             (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.checkRelation(ctx, next, UserModel, 'enterprise.id',
                 [ctx.request.params['id']], size => `ce enterprise est associé à ${size} utilisateur${size > 1 ? 's' : ''}`),
         ];
@@ -273,7 +273,7 @@ class EnterpriseRouter {
 
     private static updateValidation(): Handler[] {
         return [
-            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existeValuesInKey(ctx, next, EnterpriseModel, '_id', [ctx.request.params['id']], 1, EnterpriseRouter.enterpriseNotFound),
+            (ctx: ModifiedContext, next: Function) => CONTROLLER_HELPERS.existValuesInKey(ctx, next, EnterpriseModel, '_id', [ctx.request.params['id']], 1, EnterpriseRouter.enterpriseNotFound),
             ENTERPRISE_CONTROLLER.beforeUpdate,
         ];
     }
