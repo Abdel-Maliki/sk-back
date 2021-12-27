@@ -12,4 +12,5 @@ export const RoutesPrefix = {
     region: "/regions",
     department: "/departments",
     municipality: "/municipalities",
+    resource: "/resources",
 }

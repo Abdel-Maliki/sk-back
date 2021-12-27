@@ -50,6 +50,12 @@ enum Roles {
     READ_MUNICIPALITY = "Lister les communes",
 
 
+    ADD_RESOURCE = "Créer une ressource",
+    EDIT_RESOURCE = "Modifier une ressource",
+    DELETE_RESOURCE = "Supprimer une ressource",
+    READ_RESOURCE = "Lister les ressources",
+
+
 }
 
 export default Roles;

@@ -7,7 +7,8 @@ import ENTERPRISE_ROUTES from './router/enterprise-router';
 import BENEFICIARY_ROUTES from './router/beneficiary-router';
 import REGION_ROUTES from './router/region-router';
 import DEPARTMENT_ROUTES from './router/department-router';
-import MINUCIPALITY_ROUTES from './router/municipality-router';
+import MUNICIPALITY_ROUTES from './router/municipality-router';
+import RESOURCE_ROUTES from './router/resource-router';
 import LOGIN_ROUTES from './router/login';
 import HEALTH_ROUTES from './router/health';
 import {JwtFunctionResponse} from "index";
@@ -26,7 +27,8 @@ class Router {
             BENEFICIARY_ROUTES.routes(jwtMiddleware),
             REGION_ROUTES.routes(jwtMiddleware),
             DEPARTMENT_ROUTES.routes(jwtMiddleware),
-            MINUCIPALITY_ROUTES.routes(jwtMiddleware),
+            MUNICIPALITY_ROUTES.routes(jwtMiddleware),
+            RESOURCE_ROUTES.routes(jwtMiddleware),
         ]
     }
 

@@ -74,7 +74,7 @@ enum LogConstante {
 
     ADD_DEPARTMENT = "Créer un département",
     EDIT_DEPARTMENT = "Modifier un département",
-    DELETE_DEPARTMENT = "Supprimer un béneficaire",
+    DELETE_DEPARTMENT = "Supprimer un département",
     READ_DEPARTMENT = "Lister les départements",
     DELETE_MULTIPLE_DEPARTMENT = "Suppression multiple des départements",
     LISTER_DEPARTMENT = 'Lister les départements',
@@ -89,6 +89,16 @@ enum LogConstante {
     LISTER_MUNICIPALITY = 'Lister les communes',
     PAGE_MUNICIPALITY = 'page communes',
     FILTER_MUNICIPALITY = 'filtrer les communes',
+
+
+    ADD_RESOURCE = "Créer une ressource",
+    EDIT_RESOURCE = "Modifier une ressource",
+    DELETE_RESOURCE = "Supprimer une ressource",
+    READ_RESOURCE = "Lister les ressources",
+    DELETE_MULTIPLE_RESOURCE = "Suppression multiple des ressources",
+    LISTER_RESOURCE = 'Lister les ressources',
+    PAGE_RESOURCE = 'page ressources',
+    FILTER_RESOURCE = 'filtrer les ressources',
 }
 
 export default LogConstante;
