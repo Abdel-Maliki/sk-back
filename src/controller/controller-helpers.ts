@@ -300,10 +300,10 @@ class ControllerHelpers {
         model: Model<MODEL>,
         condition: any,
     ) {
-        const allrofiles: MODEL[] | null = await model.find(condition)
+        const models: MODEL[] | null = await model.find(condition)
             .catch(() => null);
-        if (allrofiles) {
-            let response: DOCUMENT_TYPE[] = allrofiles.map(profile => profile.toNormalization());
+        if (models) {
+            let response: DOCUMENT_TYPE[] = models.map(model => model.toNormalization());
             return ctx.answerSuccess(200, response);
         } else {
             return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
