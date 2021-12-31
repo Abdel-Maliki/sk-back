@@ -21,14 +21,14 @@ class ResourceRouter {
     public static readonly SEX_VALIDATION = JOI.string().trim().valid('M', 'F').label("le sexe de la resource").optional();
     public static readonly ETHNICITY_VALIDATION = JOI.string().trim().label("l'origine ethnique de la resource").optional();
     public static readonly MANE_VALIDATION = JOI.string().trim().label("la nom de la resource").optional();
-    public static readonly REGION_VALIDATION = JOI.object({
+    public static readonly MUNICIPALITY_VALIDATION = JOI.object({
         id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx).optional().required()
     }).optional().options({stripUnknown: true});
 
 
     private static readonly resourceInput = {
         name: ResourceRouter.MANE_VALIDATION,
-        region: ResourceRouter.REGION_VALIDATION,
+        municipality: ResourceRouter.MUNICIPALITY_VALIDATION,
         ethnicity: ResourceRouter.ETHNICITY_VALIDATION,
         age: ResourceRouter.AGE_VALIDATION,
         sex: ResourceRouter.SEX_VALIDATION,
@@ -40,9 +40,17 @@ class ResourceRouter {
         age: JOI.number().optional(),
         sex: JOI.string().allow('', null).optional(),
         ethnicity: JOI.string().allow('', null).optional(),
-        region: JOI.object({
+        municipality: JOI.object({
             id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx).required(),
             name: JOI.string().required(),
+            department: JOI.object({
+                id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx).required(),
+                name: JOI.string().required(),
+                region: JOI.object({
+                    id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx).required(),
+                    name: JOI.string().required(),
+                }),
+            }),
         }).optional(),
         createdAt: JOI.date(),
     };
