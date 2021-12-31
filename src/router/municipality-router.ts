@@ -230,6 +230,20 @@ class MunicipalityRouter {
         ]
     });
 
+    private static byDepartment: Spec = ({
+        method: ROUTER_HELPER.methods.GET,
+        path: `/by-department/:id`,
+        validate: {
+            continueOnError: true,
+            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(MunicipalityRouter.municipalityOutput))
+        },
+        handler: [
+            ROUTER_HELPER.validation,
+            (ctx: ModifiedContext) => CONTROLLER_HELPERS.search(ctx, MunicipalityModel, {'department.id': ctx.request.params['id']}),
+        ]
+    });
+
     public static routes(jwtMiddleware: JwtFunctionResponse): ROUTER.Router[] {
         return [
             CONTROLLER_HELPERS.buildRouter(MunicipalityRouter.create, [ROLES.ADD_MUNICIPALITY], LOG_CONSTANTS.ADD_MUNICIPALITY, RoutesPrefix.municipality, jwtMiddleware),
@@ -243,6 +257,7 @@ class MunicipalityRouter {
             CONTROLLER_HELPERS.buildRouter(MunicipalityRouter.read, [ROLES.READ_MUNICIPALITY, ROLES.DELETE_MUNICIPALITY, ROLES.ADD_MUNICIPALITY, ROLES.EDIT_MUNICIPALITY], LOG_CONSTANTS.READ_MUNICIPALITY, RoutesPrefix.municipality, jwtMiddleware),
             CONTROLLER_HELPERS.buildRouter(MunicipalityRouter.page, [ROLES.READ_MUNICIPALITY, ROLES.DELETE_MUNICIPALITY, ROLES.ADD_MUNICIPALITY, ROLES.EDIT_MUNICIPALITY], LOG_CONSTANTS.PAGE_MUNICIPALITY, RoutesPrefix.municipality, jwtMiddleware),
             CONTROLLER_HELPERS.buildRouter(MunicipalityRouter.all, [ROLES.READ_MUNICIPALITY, ROLES.DELETE_MUNICIPALITY, ROLES.ADD_MUNICIPALITY, ROLES.EDIT_MUNICIPALITY], LOG_CONSTANTS.LISTER_MUNICIPALITY, RoutesPrefix.municipality, jwtMiddleware),
+            CONTROLLER_HELPERS.buildRouter(MunicipalityRouter.byDepartment, [ROLES.READ_MUNICIPALITY, ROLES.DELETE_MUNICIPALITY, ROLES.ADD_MUNICIPALITY, ROLES.EDIT_MUNICIPALITY], LOG_CONSTANTS.LISTER_MUNICIPALITY, RoutesPrefix.municipality, jwtMiddleware),
         ];
     }
 
