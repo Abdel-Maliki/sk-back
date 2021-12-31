@@ -176,6 +176,21 @@ class DepartmentRouter {
         ]
     });
 
+    private static byRegion: Spec = ({
+        method: ROUTER_HELPER.methods.GET,
+        path: `/by-region/:id`,
+        validate: {
+            continueOnError: true,
+            params: JOI.object({id: JOI.string().regex(ROUTER_HELPER.mongoObjectRegEx)}),
+            output: ROUTER_HELPER.defaultOutput(JOI.array().items(DepartmentRouter.departmentOutput))
+        },
+        handler: [
+            ROUTER_HELPER.validation,
+            (ctx: ModifiedContext) => CONTROLLER_HELPERS.search(ctx, DepartmentModel, {'region.id': ctx.request.params['id']}),
+        ]
+    });
+
+
     private static deleteAll: Spec = ({
         method: ROUTER_HELPER.methods.PUT,
         path: ROUTE_PATH_HELPER.deleteAllPath(),
@@ -244,6 +259,7 @@ class DepartmentRouter {
             CONTROLLER_HELPERS.buildRouter(DepartmentRouter.read, [ROLES.READ_DEPARTMENT, ROLES.DELETE_DEPARTMENT, ROLES.ADD_DEPARTMENT, ROLES.EDIT_DEPARTMENT], LOG_CONSTANTS.READ_DEPARTMENT, RoutesPrefix.department, jwtMiddleware),
             CONTROLLER_HELPERS.buildRouter(DepartmentRouter.page, [ROLES.READ_DEPARTMENT, ROLES.DELETE_DEPARTMENT, ROLES.ADD_DEPARTMENT, ROLES.EDIT_DEPARTMENT], LOG_CONSTANTS.PAGE_DEPARTMENT, RoutesPrefix.department, jwtMiddleware),
             CONTROLLER_HELPERS.buildRouter(DepartmentRouter.all, [ROLES.READ_DEPARTMENT, ROLES.DELETE_DEPARTMENT, ROLES.ADD_DEPARTMENT, ROLES.EDIT_DEPARTMENT], LOG_CONSTANTS.LISTER_DEPARTMENT, RoutesPrefix.department, jwtMiddleware),
+            CONTROLLER_HELPERS.buildRouter(DepartmentRouter.byRegion, [ROLES.READ_DEPARTMENT, ROLES.DELETE_DEPARTMENT, ROLES.ADD_DEPARTMENT, ROLES.EDIT_DEPARTMENT], LOG_CONSTANTS.LISTER_DEPARTMENT, RoutesPrefix.department, jwtMiddleware),
         ];
     }
 
