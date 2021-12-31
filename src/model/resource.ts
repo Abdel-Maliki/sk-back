@@ -1,6 +1,6 @@
 import MONGOOSE from 'mongoose';
 import {EntityBase} from "./entity-base";
-import {RegionType} from "./region";
+import {MunicipalityType} from "./municipality";
 
 type toNormalizationFunction = () => ResourceType;
 
@@ -9,13 +9,13 @@ export type ResourceDocument = MONGOOSE.Document & EntityBase & {
     ethnicity?: string,
     age?: number,
     sex?: 'M' | 'F',
-    region?: RegionType,
+    municipality?: MunicipalityType,
     toNormalization: toNormalizationFunction
 };
 
 export type ResourceType = EntityBase & {
     name?: string | null,
-    region?: RegionType | null,
+    municipality?: MunicipalityType | null,
     ethnicity?: string | null,
     age?: number | null,
     sex?: 'M' | 'F' | null,
@@ -24,7 +24,7 @@ export type ResourceType = EntityBase & {
 
 const resourceSchema = new MONGOOSE.Schema({
     name: {type: String, unique: false},
-    region: {type: Object, unique: false},
+    municipality: {type: Object, unique: false},
     ethnicity: {type: String, unique: false},
     age: {type: Number, unique: false},
     sex: {type: String, unique: false},
@@ -36,7 +36,7 @@ const toNormalization: toNormalizationFunction = function () {
     let ResourceObject: ResourceType = {
         id: _resourceObject._id.toString(),
         name: _resourceObject.name,
-        region: _resourceObject.region,
+        municipality: _resourceObject.municipality,
         ethnicity: _resourceObject.ethnicity,
         sex: _resourceObject.sex,
         age: _resourceObject.age,
