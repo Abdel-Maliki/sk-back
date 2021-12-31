@@ -2,16 +2,15 @@ import {ModifiedContext, Responses} from './../types';
 
 import ResourceModel, {ResourceDocument, ResourceType} from './../model/resource';
 import UserModel from './../model/user';
-import RegionModel from './../model/region';
+import MunicipalityModel, {MunicipalityDocument} from './../model/municipality';
 import {ClientSession, startSession} from "mongoose";
-import {RegionDocument} from "../model/region";
 
 
 /**
  * @param name - A valid string that has already been validated by JOI
  * @param description - A valid string that has already been validated by JOI
  */
-type InputCreateBodyType = { name: string, region: { id: string }, description: string };
+type InputCreateBodyType = { name: string, municipality: { id: string }, description: string };
 
 
 class ResourceController {
@@ -25,20 +24,20 @@ class ResourceController {
         if (totalExisting === null) {
             return ctx.answerUserError(400, Responses.SOMETHING_WENT_WRONG);
         } else if (totalExisting === 0) {
-            return await ResourceController.regionValidation(ctx, next);
+            return await ResourceController.municipalityValidation(ctx, next);
         } else {
             return ctx.answerUserError(400, `${body.name} existe déja`);
         }
     };
 
-    public static regionValidation = async (ctx: ModifiedContext, next: Function): Promise<any> => {
+    public static municipalityValidation = async (ctx: ModifiedContext, next: Function): Promise<any> => {
 
-        const regionDocument: RegionDocument = await RegionModel.findById(ctx.request.body.region.id).exec().catch(() => null);
+        const municipalityDocument: MunicipalityDocument = await MunicipalityModel.findById(ctx.request.body.municipality.id).exec().catch(() => null);
 
-        if (regionDocument === null) {
-            return ctx.answerUserError(400, "Cette region n'existe pas");
+        if (municipalityDocument === null) {
+            return ctx.answerUserError(400, "Cette commune n'existe pas");
         } else {
-            ctx.request.body.region = regionDocument.toNormalization();
+            ctx.request.body.municipality = municipalityDocument.toNormalization();
             return await next();
         }
     }
@@ -51,7 +50,7 @@ class ResourceController {
         if (resource !== null && resource._id.toString() !== ctx.request.params['id'].toString()) {
             return ctx.answerUserError(400, `${body.name} existe déja`);
         } else {
-            return await ResourceController.regionValidation(ctx, next)
+            return await ResourceController.municipalityValidation(ctx, next)
         }
     };
 
