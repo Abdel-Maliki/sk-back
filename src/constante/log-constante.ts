@@ -99,6 +99,16 @@ enum LogConstante {
     LISTER_RESOURCE = 'Lister les ressources',
     PAGE_RESOURCE = 'page ressources',
     FILTER_RESOURCE = 'filtrer les ressources',
+
+
+    ADD_NEIGHBORHOOD = "Créer un village/quartier",
+    EDIT_NEIGHBORHOOD = "Modifier un village/quartier",
+    DELETE_NEIGHBORHOOD = "Supprimer un village/quartier",
+    READ_NEIGHBORHOOD = "Lister les villages/quartiers",
+    DELETE_MULTIPLE_NEIGHBORHOOD = "Suppression multiple des villages/quartiers",
+    LISTER_NEIGHBORHOOD = 'Lister les villages/quartiers',
+    PAGE_NEIGHBORHOOD = 'page villages/quartiers',
+    FILTER_NEIGHBORHOOD = 'filtrer les villages/quartiers',
 }
 
 export default LogConstante;

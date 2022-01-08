@@ -8,6 +8,7 @@ import BENEFICIARY_ROUTES from './router/beneficiary-router';
 import REGION_ROUTES from './router/region-router';
 import DEPARTMENT_ROUTES from './router/department-router';
 import MUNICIPALITY_ROUTES from './router/municipality-router';
+import NEIGHBORHOOD_ROUTES from './router/neighborhood-router';
 import RESOURCE_ROUTES from './router/resource-router';
 import LOGIN_ROUTES from './router/login';
 import HEALTH_ROUTES from './router/health';
@@ -28,6 +29,7 @@ class Router {
             REGION_ROUTES.routes(jwtMiddleware),
             DEPARTMENT_ROUTES.routes(jwtMiddleware),
             MUNICIPALITY_ROUTES.routes(jwtMiddleware),
+            NEIGHBORHOOD_ROUTES.routes(jwtMiddleware),
             RESOURCE_ROUTES.routes(jwtMiddleware),
         ]
     }
