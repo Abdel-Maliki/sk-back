@@ -14,4 +14,5 @@ export const RoutesPrefix = {
     municipality: "/municipalities",
     resource: "/resources",
     neighborhood: "/neighborhoods",
+    activity: "/activities",
 }

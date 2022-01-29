@@ -6,7 +6,7 @@ import {DefaultUserCreator} from "../service/default-user-creator";
 import {ObjectSchema} from "joi";
 import ROUTER, {Joi as JOI, Spec} from "koa-joi-router";
 import Roles from "../constante/roles";
-import LogConstante from "../constante/log-constante";
+import LogConstants from "../constante/log-constants";
 import Middleware from "../middleware";
 import BCRYPT from "bcrypt";
 import UserModel from "../model/user";
@@ -371,7 +371,7 @@ class ControllerHelpers {
         return size && size > 0;
     }
 
-    public static buildRouter = (spec: Spec, roles: Roles[], log: LogConstante, prefix: string, jwtMiddleware: JwtFunctionResponse): ROUTER.Router => {
+    public static buildRouter = (spec: Spec, roles: Roles[], log: LogConstants, prefix: string, jwtMiddleware: JwtFunctionResponse): ROUTER.Router => {
         const router = ROUTER();
         router.prefix(prefix);
         router.use(jwtMiddleware.authenticate);

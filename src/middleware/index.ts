@@ -8,7 +8,7 @@ import {DefaultUserCreator} from "../service/default-user-creator";
 import {LogState} from "../model/log";
 import LoModel from './../model/log';
 import ProfileModel from "../model/profile";
-import LogConstante from "../constante/log-constante";
+import LogConstants from "../constante/log-constants";
 import {version} from "../../package.json";
 import ProjectConstants from "../constante/project-constants";
 
@@ -140,7 +140,7 @@ class Middleware {
         ctx.state.log = {
             state: LogState.CLIENT_ERROR,
             userName: ctx.state.user.userName,
-            action: LogConstante.NOT_FOUND,
+            action: LogConstants.NOT_FOUND,
             ipAddress: ctx.request.ip,
             url: ctx.request.url,
             method: ctx.request.method,
@@ -171,7 +171,7 @@ class Middleware {
         await next();
     };
 
-    public static addLog = async (ctx: ModifiedContext, next: Function, log: LogConstante) => {
+    public static addLog = async (ctx: ModifiedContext, next: Function, log: LogConstants) => {
         console.log('Class: Middleware, Function: addLog, Line 156 , log: '
             , log);
         if (log) {

@@ -4,7 +4,7 @@
  */
 
 
-enum LogConstante {
+enum LogConstants {
     NOT_FOUND = "NOT FOUND",
     LOGIN = "Login",
     HEALTH = "HEALTH",
@@ -109,6 +109,15 @@ enum LogConstante {
     LISTER_NEIGHBORHOOD = 'Lister les villages/quartiers',
     PAGE_NEIGHBORHOOD = 'page villages/quartiers',
     FILTER_NEIGHBORHOOD = 'filtrer les villages/quartiers',
+
+    ADD_ACTIVITY = "Créer un activité",
+    EDIT_ACTIVITY = "Modifier un activité",
+    DELETE_ACTIVITY = "Supprimer un activité",
+    READ_ACTIVITY = "Lister les activités",
+    DELETE_MULTIPLE_ACTIVITY = "Suppression multiple des activités",
+    LISTER_ACTIVITY = 'Lister les activités',
+    PAGE_ACTIVITY = 'page activités',
+    FILTER_ACTIVITY = 'filtrer les activités',
 }
 
-export default LogConstante;
+export default LogConstants;

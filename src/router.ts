@@ -10,11 +10,12 @@ import DEPARTMENT_ROUTES from './router/department-router';
 import MUNICIPALITY_ROUTES from './router/municipality-router';
 import NEIGHBORHOOD_ROUTES from './router/neighborhood-router';
 import RESOURCE_ROUTES from './router/resource-router';
+import ACTIVITY_ROUTES from './router/activity-router';
 import LOGIN_ROUTES from './router/login';
 import HEALTH_ROUTES from './router/health';
 import {JwtFunctionResponse} from "index";
 import Middleware from "./middleware";
-import LogConstante from "./constante/log-constante";
+import LogConstants from "./constante/log-constants";
 import {RoutesPrefix} from "./constante/routes-prefix";
 
 class Router {
@@ -31,18 +32,19 @@ class Router {
             MUNICIPALITY_ROUTES.routes(jwtMiddleware),
             NEIGHBORHOOD_ROUTES.routes(jwtMiddleware),
             RESOURCE_ROUTES.routes(jwtMiddleware),
+            ACTIVITY_ROUTES.routes(jwtMiddleware),
         ]
     }
 
-    private static publicRoutes: { data: { spec: Spec, log: LogConstante }[], prefix: string }[] = [
-        {prefix: '', data: [{spec: HEALTH_ROUTES.read, log: LogConstante.HEALTH}]},
+    private static publicRoutes: { data: { spec: Spec, log: LogConstants }[], prefix: string }[] = [
+        {prefix: '', data: [{spec: HEALTH_ROUTES.read, log: LogConstants.HEALTH}]},
         {
             prefix: RoutesPrefix.user,
-            data: [{spec: USER_ROUTES.forgotPasswordRequest, log: LogConstante.FORGOT_PASSWORD_REQUEST}]
+            data: [{spec: USER_ROUTES.forgotPasswordRequest, log: LogConstants.FORGOT_PASSWORD_REQUEST}]
         },
         {
             prefix: RoutesPrefix.user,
-            data: [{spec: USER_ROUTES.forgotPasswordFinalisation, log: LogConstante.FORGOT_PASSWORD_FINALISATION}]
+            data: [{spec: USER_ROUTES.forgotPasswordFinalisation, log: LogConstants.FORGOT_PASSWORD_FINALISATION}]
         },
         LOGIN_ROUTES.routes(),
     ]

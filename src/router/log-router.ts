@@ -7,7 +7,7 @@ import LogModel from './../model/log';
 import ROUTE_PATH_HELPER from "./route-path-helper";
 import {RoutesPrefix} from "../constante/routes-prefix";
 import ROLES from "../constante/roles";
-import LOG_CONSTANTE from "../constante/log-constante";
+import LOG_CONSTANTE from "../constante/log-constants";
 
 
 class LogRouter {

@@ -2,8 +2,8 @@ import {Joi as JOI, Spec } from 'koa-joi-router';
 
 import ROUTER_HELPER from './router-helper';
 import LOGIN_CONTROLLER from '../controller/login';
-import LogConstante from "../constante/log-constante";
-import LOG_CONSTANTE from "../constante/log-constante";
+import LogConstants from "../constante/log-constants";
+import LOG_CONSTANTE from "../constante/log-constants";
 
 class LoginRouter {
   public static create:Spec = ({
@@ -23,7 +23,7 @@ class LoginRouter {
     handler: [ROUTER_HELPER.validation, LOGIN_CONTROLLER.create]
   });
 
-  public static routes(): {data: {spec: Spec, log: LogConstante}[], prefix: string}  {
+  public static routes(): {data: {spec: Spec, log: LogConstants}[], prefix: string}  {
     return {
       prefix: '',
       data: [

@@ -61,6 +61,11 @@ enum Roles {
     DELETE_RESOURCE = "Supprimer une ressource",
     READ_RESOURCE = "Lister les ressources",
 
+    ADD_ACTIVITY = "Créer une activité",
+    EDIT_ACTIVITY = "Modifier une activité",
+    DELETE_ACTIVITY = "Supprimer une activité",
+    READ_ACTIVITY = "Lister les activités",
+
 
 }
 

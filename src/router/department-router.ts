@@ -9,7 +9,7 @@ import ROUTE_PATH_HELPER from "./route-path-helper";
 import {RoutesPrefix} from "../constante/routes-prefix";
 import UserModel from './../model/user';
 import ROLES from "../constante/roles";
-import LOG_CONSTANTS from "../constante/log-constante";
+import LOG_CONSTANTS from "../constante/log-constants";
 
 class DepartmentRouter {
 

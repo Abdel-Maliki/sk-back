@@ -1,5 +1,5 @@
 import MONGOOSE from 'mongoose';
-import LogConstante from "../constante/log-constante";
+import LogConstants from "../constante/log-constants";
 import {EntityBase} from "./entity-base";
 import {version} from "../../package.json";
 
@@ -8,7 +8,7 @@ type toNormalizationFunction = () => LogType;
 export enum LogState {SUCCESS = 'SUCCESS', CLIENT_ERROR = 'USER_ERROR', SERVER_ERROR = 'SERVER_ERROR' }
 
 export type LogDocument = MONGOOSE.Document & {
-    action: LogConstante,
+    action: LogConstants,
     elementId: string,
     userName: string,
     state: LogState,
@@ -28,7 +28,7 @@ export type LogDocument = MONGOOSE.Document & {
 
 export type LogType = EntityBase & {
     id?: string | null,
-    action?: LogConstante | null,
+    action?: LogConstants | null,
     elementId?: string | null,
     userName?: string | null,
     state?: LogState | null,
@@ -46,7 +46,7 @@ export type LogType = EntityBase & {
 };
 
 const logSchema = new MONGOOSE.Schema({
-    action: {type: LogConstante, default: ''},
+    action: {type: LogConstants, default: ''},
     elementId: {type: String, default: ''},
     userName: {type: String, default: ''},
     url: {type: String, default: ''},
